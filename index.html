@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스핀들 수리 관리 시스템</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; color: #222; }
+
+  /* NAV */
+  nav { background: #1a2744; color: #fff; display: flex; align-items: center; padding: 0 24px; height: 56px; gap: 8px; }
+  nav .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; margin-right: auto; }
+  nav button { background: transparent; color: #aec6f0; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: background .15s; }
+  nav button:hover, nav button.active { background: #2d4a8a; color: #fff; }
+
+  /* VIEWS */
+  .view { display: none; padding: 28px 32px; }
+  .view.active { display: block; }
+
+  /* CARDS GRID */
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #1a2744; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .customer-card { background: #fff; border-radius: 12px; padding: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-left: 5px solid #3b82f6; transition: transform .15s, box-shadow .15s; }
+  .customer-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.13); }
+  .customer-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .customer-card .meta { font-size: 12px; color: #666; margin-bottom: 10px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-yellow { background: #fef3c7; color: #b45309; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-gray { background: #e5e7eb; color: #374151; }
+  .badge-red { background: #fee2e2; color: #b91c1c; }
+  .badge-purple { background: #ede9fe; color: #6d28d9; }
+  .badge-orange { background: #ffedd5; color: #c2410c; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #fff; }
+  .btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-success { background: #10b981; color: #fff; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+  .btn-purple { background: #7c3aed; color: #fff; }
+  .btn-sm { padding: 5px 12px; font-size: 13px; }
+
+  /* TABLE */
+  .table-wrap { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f8fafc; text-align: left; padding: 11px 14px; font-weight: 600; color: #555; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  /* MODAL */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 28px; width: 95%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #1a2744; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid.cols1 { grid-template-columns: 1fr; }
+  .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 13px; font-weight: 600; color: #555; }
+  input, select, textarea { padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; width: 100%; }
+  textarea { resize: vertical; min-height: 70px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+
+  /* CUSTOMER DETAIL */
+  #detail-view .detail-header { background: #fff; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.07); display: flex; align-items: center; gap: 16px; }
+  .detail-header .info h2 { margin: 0 0 4px 0; }
+  .detail-header .info p { color: #666; font-size: 14px; }
+  .detail-header .actions { margin-left: auto; display: flex; gap: 8px; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 20px; background: #e5e7eb; border-radius: 10px; padding: 3px; width: fit-content; }
+  .tab-btn { padding: 8px 18px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #666; transition: background .15s; }
+  .tab-btn.active { background: #fff; color: #1a2744; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* REPAIR DETAIL */
+  .repair-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+  .repair-card .rc-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .repair-card .rc-header h4 { font-size: 16px; font-weight: 700; }
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .info-item label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; display: block; margin-bottom: 2px; }
+  .info-item span { font-size: 14px; font-weight: 600; color: #111; }
+  .parts-mini-table { font-size: 13px; }
+  .parts-mini-table th { font-size: 12px; padding: 7px 10px; }
+  .parts-mini-table td { padding: 7px 10px; }
+
+  /* INVENTORY */
+  .stock-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .stock-bar { height: 8px; border-radius: 4px; background: #e5e7eb; flex: 1; overflow: hidden; }
+  .stock-bar-fill { height: 100%; border-radius: 4px; background: #10b981; transition: width .3s; }
+  .stock-bar-fill.warn { background: #f59e0b; }
+  .stock-bar-fill.danger { background: #ef4444; }
+  .num { text-align: right; }
+
+  /* SUMMARY BOXES */
+  .summary-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .summary-box { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .summary-box .val { font-size: 22px; font-weight: 700; color: #1a2744; }
+  .summary-box .lbl { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* STATUS STEPPER */
+  .stepper { display: flex; align-items: center; gap: 0; margin: 12px 0; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #d1d5db; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #999; flex-shrink: 0; z-index: 1; cursor: pointer; transition: all .15s; }
+  .step-dot.done { border-color: #10b981; background: #10b981; color: #fff; }
+  .step-dot.current { border-color: #3b82f6; background: #3b82f6; color: #fff; }
+  .step-line { flex: 1; height: 3px; background: #e5e7eb; }
+  .step-line.done { background: #10b981; }
+  .step-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .step-label { font-size: 11px; color: #888; text-align: center; flex: 1; }
+  .step-label.current { color: #3b82f6; font-weight: 700; }
+  .step-label.done { color: #10b981; font-weight: 600; }
+
+  /* ALERT */
+  .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+  .alert-info { background: #dbeafe; color: #1d4ed8; }
+  .alert-success { background: #d1fae5; color: #065f46; }
+  .alert-warn { background: #fef3c7; color: #92400e; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
+  .empty p { font-size: 15px; }
+
+  /* QUOTE CARD */
+  .quote-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.07); border-left: 5px solid #7c3aed; }
+  .quote-card .qc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .quote-card .qc-header h4 { font-size: 15px; font-weight: 700; }
+
+  /* QUOTE TOTAL BOX */
+  .quote-total-box { background: #f8fafc; border-radius: 10px; padding: 16px; margin-top: 16px; border: 1px solid #e5e7eb; }
+  .qt-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
+  .qt-row.divider { border-top: 1px solid #e5e7eb; margin-top: 6px; padding-top: 10px; }
+  .qt-row.total { font-size: 17px; font-weight: 700; color: #1a2744; border-top: 2px solid #1a2744; margin-top: 8px; padding-top: 10px; }
+
+  /* QUOTE BUILDER MINI TABLE */
+  .qb-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  .qb-table th { background: #f1f5f9; padding: 7px 8px; text-align: left; font-size: 12px; border-bottom: 1px solid #e5e7eb; }
+  .qb-table th.r { text-align: right; }
+  .qb-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .qb-table td input, .qb-table td select { padding: 5px 7px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; }
+  .qb-table td input[type=number] { text-align: right; }
+  .qb-section-title { font-size: 13px; font-weight: 700; color: #1a2744; margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+
+  /* SECTION SEPARATOR */
+  .sec-hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+
+  @media (max-width: 600px) {
+    .view { padding: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    nav .logo { font-size: 15px; }
+  }
+
+  /* PARTNER CARD */
+  .partner-card { background: #fff; border-radius: 12px; padding: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-left: 5px solid #f59e0b; transition: transform .15s, box-shadow .15s; }
+  .partner-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.13); }
+  .partner-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .partner-card .meta { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .btn-amber { background: #f59e0b; color: #fff; }
+
+  /* TRANSACTION LEDGER */
+  .txn-in  { color: #059669; font-weight: 700; }
+  .txn-out { color: #dc2626; font-weight: 700; }
+  .ledger-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+  .ledger-box { border-radius: 8px; padding: 12px 14px; text-align: center; }
+  .ledger-box.in  { background: #d1fae5; }
+  .ledger-box.out { background: #fee2e2; }
+  .ledger-box.bal { background: #dbeafe; }
+  .ledger-box .lv { font-size: 17px; font-weight: 700; }
+  .ledger-box .ll { font-size: 11px; color: #555; margin-top: 2px; }
+
+  /* ORDER CARD */
+  .order-card { background: #fff; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.07); border-left: 5px solid #f59e0b; }
+  .order-card.done  { border-left-color: #10b981; }
+  .order-card.cancel{ border-left-color: #9ca3af; opacity:.7; }
+  .order-card .oc-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .order-card .oc-header h4 { font-size:15px; font-weight:700; }
+  .oc-items { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  .oc-items th { background:#f8fafc; padding:6px 10px; font-size:12px; border-bottom:1px solid #e5e7eb; }
+  .oc-items td { padding:6px 10px; border-bottom:1px solid #f8fafc; }
+
+  /* SCHEDULE TIMELINE */
+  .schedule-item { display:flex; gap:14px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+  .schedule-item:last-child { border:none; }
+  .sch-date-box { text-align:center; min-width:52px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:6px 4px; }
+  .sch-date-box .dm { font-size:18px; font-weight:700; color:#1a2744; line-height:1; }
+  .sch-date-box .dy { font-size:11px; color:#888; }
+  .sch-date-box.overdue { border-color:#ef4444; background:#fee2e2; }
+  .sch-date-box.overdue .dm { color:#dc2626; }
+  .sch-date-box.today  { border-color:#3b82f6; background:#dbeafe; }
+  .sch-date-box.today .dm { color:#1d4ed8; }
+  .sch-info h5 { font-size:14px; font-weight:700; margin-bottom:3px; }
+  .sch-info p  { font-size:12px; color:#666; }
+
+  /* FINANCE */
+  .fin-table { width:100%; border-collapse:collapse; font-size:14px; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+  .fin-table th { background:#1a2744; color:#fff; padding:11px 16px; font-size:13px; font-weight:600; text-align:right; white-space:nowrap; }
+  .fin-table th:first-child { text-align:center; }
+  .fin-table td { padding:11px 16px; border-bottom:1px solid #f1f5f9; text-align:right; white-space:nowrap; }
+  .fin-table td:first-child { text-align:center; font-weight:700; color:#1a2744; }
+  .fin-table tr:hover td { background:#f8fafc; }
+  .fin-table tfoot td { background:#f1f5f9; font-weight:700; border-top:2px solid #e5e7eb; }
+  .fin-table .pos { color:#059669; }
+  .fin-table .neg { color:#dc2626; }
+  .bar-cell { padding:8px 16px !important; }
+  .bar-wrap { display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+  .bar-seg { height:14px; border-radius:3px; min-width:2px; transition:width .3s; }
+  .bar-rev { background:#3b82f6; }
+  .bar-cost { background:#f59e0b; }
+  .bar-prof { background:#10b981; }
+  .bar-prof.neg { background:#ef4444; }
+  .toggle-group { display:flex; background:#e5e7eb; border-radius:8px; padding:3px; gap:2px; }
+  .toggle-btn { padding:6px 16px; border:none; background:transparent; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; color:#666; }
+  .toggle-btn.active { background:#fff; color:#1a2744; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+
+  /* PRINT STYLES */
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: fixed; left: 0; top: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⚙️ 스핀들 수리 관리</span>
+  <button onclick="showView('main')" id="nav-main" class="active">메인 대시보드</button>
+  <button onclick="showView('inventory')" id="nav-inventory">재고 관리</button>
+  <button onclick="showView('customers-mgmt')" id="nav-customers">고객사 관리</button>
+  <button onclick="showView('partners')" id="nav-partners">협력사 관리</button>
+  <button onclick="showView('schedule')" id="nav-schedule">납품 일정</button>
+  <button onclick="showView('finance')" id="nav-finance">정산 현황</button>
+</nav>
+
+<!-- =================== MAIN VIEW =================== -->
+<div id="main-view" class="view active">
+  <h2>활성 고객사 현황</h2>
+  <div id="main-summary" class="summary-row"></div>
+  <div class="toolbar">
+    <input type="text" id="main-search" placeholder="고객사 검색..." oninput="renderMain()" style="width:220px">
+    <select id="main-filter" onchange="renderMain()">
+      <option value="all">전체 상태</option>
+      <option value="접수">접수</option>
+      <option value="분해">분해</option>
+      <option value="수리중">수리중</option>
+      <option value="조립완료">조립완료</option>
+      <option value="출고">출고</option>
+    </select>
+  </div>
+  <div id="main-grid" class="card-grid"></div>
+</div>
+
+<!-- =================== DETAIL VIEW =================== -->
+<div id="detail-view" class="view">
+  <div class="detail-header">
+    <div>
+      <button class="btn btn-outline btn-sm" onclick="showView('main')">← 목록으로</button>
+    </div>
+    <div class="info" id="detail-header-info"></div>
+    <div class="actions">
+      <button class="btn btn-purple btn-sm" onclick="openQuoteModal()">+ 견적서 작성</button>
+      <button class="btn btn-primary btn-sm" onclick="openRepairModal()">+ 수리 접수</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('repairs',event)">수리 현황</button>
+    <button class="tab-btn" onclick="switchTab('quotes',event)">견적서</button>
+    <button class="tab-btn" onclick="switchTab('history',event)">거래 내역</button>
+    <button class="tab-btn" onclick="switchTab('txn',event)">입출금</button>
+  </div>
+  <div id="tab-repairs" class="tab-content active"></div>
+  <div id="tab-quotes" class="tab-content"></div>
+  <div id="tab-history" class="tab-content">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>수리번호</th><th>스핀들 모델</th><th>접수일</th><th>출고일</th><th>견적</th><th>할인율</th><th>최종금액</th><th>상태</th></tr></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="tab-txn" class="tab-content"></div>
+</div>
+
+<!-- =================== PARTNER VIEW =================== -->
+<div id="partners-view" class="view">
+  <h2>협력사 현황</h2>
+  <div id="partner-summary" class="summary-row"></div>
+  <div class="toolbar">
+    <input type="text" id="partner-search" placeholder="협력사 검색..." oninput="renderPartners()" style="width:220px">
+    <select id="partner-cat-filter" onchange="renderPartners()">
+      <option value="all">전체 유형</option>
+      <option value="부품공급">부품공급</option>
+      <option value="외주수리">외주수리</option>
+      <option value="물류/운송">물류/운송</option>
+      <option value="기타">기타</option>
+    </select>
+    <button class="btn btn-amber" onclick="openPartnerModal()">+ 협력사 등록</button>
+  </div>
+  <div id="partner-grid" class="card-grid"></div>
+</div>
+
+<!-- =================== PARTNER DETAIL VIEW =================== -->
+<div id="partner-detail-view" class="view">
+  <div class="detail-header">
+    <div><button class="btn btn-outline btn-sm" onclick="showView('partners')">← 목록으로</button></div>
+    <div class="info" id="partner-detail-header-info"></div>
+    <div class="actions">
+      <button class="btn btn-success btn-sm" onclick="openTxnModal('partner',null,currentPartnerId,'입금')">+ 입금</button>
+      <button class="btn btn-danger btn-sm" onclick="openTxnModal('partner',null,currentPartnerId,'출금')">+ 출금</button>
+      <button class="btn btn-outline btn-sm" onclick="openPartnerModal(currentPartnerId)">정보 수정</button>
+    </div>
+  </div>
+  <div class="tabs" id="partner-tabs">
+    <button class="tab-btn active" onclick="switchPartnerTab('ptxn',event)">입출금 내역</button>
+    <button class="tab-btn" onclick="switchPartnerTab('porders',event)">발주 / 납품</button>
+    <button class="tab-btn" onclick="switchPartnerTab('pinfo',event)">기본 정보</button>
+  </div>
+  <div id="tab-ptxn"    class="tab-content active"></div>
+  <div id="tab-porders" class="tab-content"></div>
+  <div id="tab-pinfo"   class="tab-content"></div>
+</div>
+
+<!-- =================== FINANCE VIEW =================== -->
+<div id="finance-view" class="view">
+  <h2>정산 현황</h2>
+  <div class="toolbar" style="justify-content:space-between;align-items:center">
+    <div style="display:flex;gap:10px;align-items:center">
+      <select id="fin-year" onchange="renderFinance()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff"></select>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="fin-mode-accrual" onclick="setFinMode('accrual')">발생 기준</button>
+        <button class="toggle-btn" id="fin-mode-cash" onclick="setFinMode('cash')">현금 기준</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:13px;color:#666;align-items:center">
+      <span><span style="display:inline-block;width:12px;height:12px;background:#3b82f6;border-radius:2px;margin-right:4px"></span>매출</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;margin-right:4px"></span>매입</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#10b981;border-radius:2px;margin-right:4px"></span>이익</span>
+    </div>
+  </div>
+  <div id="fin-summary" class="summary-row" style="margin-bottom:20px"></div>
+  <div id="fin-mode-label" style="font-size:12px;color:#888;margin-bottom:10px"></div>
+  <table class="fin-table" id="fin-table">
+    <thead>
+      <tr>
+        <th style="text-align:center;min-width:60px">월</th>
+        <th>수리 매출<br><span style="font-weight:400;font-size:11px;opacity:.8">(출고 기준)</span></th>
+        <th>부품/가공 매입<br><span style="font-weight:400;font-size:11px;opacity:.8">(납품 기준)</span></th>
+        <th>영업이익</th>
+        <th>이익률</th>
+        <th style="min-width:200px">비율</th>
+        <th>건수</th>
+      </tr>
+    </thead>
+    <tbody id="fin-tbody"></tbody>
+    <tfoot><tr id="fin-tfoot"></tr></tfoot>
+  </table>
+  <div style="margin-top:24px">
+    <h3 style="font-size:15px;font-weight:700;color:#1a2744;margin-bottom:12px">고객사별 매출 (해당 연도)</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>고객사</th><th class="num">수리 매출</th><th class="num">입금액</th><th class="num">미수금</th><th class="num">건수</th></tr></thead>
+      <tbody id="fin-cust-tbody"></tbody>
+    </table></div>
+  </div>
+  <div style="margin-top:24px">
+    <h3 style="font-size:15px;font-weight:700;color:#1a2744;margin-bottom:12px">협력사별 매입 (해당 연도)</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>협력사</th><th class="num">발주 매입</th><th class="num">실 지급액</th><th class="num">미지급</th><th class="num">건수</th></tr></thead>
+      <tbody id="fin-partner-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- =================== SCHEDULE VIEW =================== -->
+<div id="schedule-view" class="view">
+  <h2>납품 일정</h2>
+  <div id="schedule-summary" class="summary-row"></div>
+  <div class="toolbar">
+    <select id="sch-filter" onchange="renderSchedule()">
+      <option value="pending">진행중 (발주중)</option>
+      <option value="all">전체</option>
+      <option value="done">납품완료</option>
+    </select>
+    <select id="sch-partner" onchange="renderSchedule()">
+      <option value="all">전체 협력사</option>
+    </select>
+  </div>
+  <div id="schedule-body"></div>
+</div>
+
+<!-- =================== INVENTORY VIEW =================== -->
+<div id="inventory-view" class="view">
+  <h2>부품 재고 관리</h2>
+  <div id="inv-summary" class="summary-row"></div>
+  <div class="toolbar">
+    <input type="text" id="inv-search" placeholder="부품명 검색..." oninput="renderInventory()" style="width:220px">
+    <select id="inv-cat" onchange="renderInventory()">
+      <option value="all">전체 카테고리</option>
+    </select>
+    <button class="btn btn-primary" onclick="openPartModal()">+ 부품 등록</button>
+    <button class="btn btn-outline" onclick="openStockInModal()">입고 처리</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>부품명</th><th>카테고리</th><th>단가</th><th>현재고</th><th>안전재고</th><th>재고현황</th><th>입고</th><th>관리</th></tr></thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =================== CUSTOMERS MGMT VIEW =================== -->
+<div id="customers-mgmt-view" class="view">
+  <h2>고객사 관리</h2>
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="openCustomerModal()">+ 고객사 등록</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>고객사명</th><th>담당자</th><th>연락처</th><th>이메일</th><th>주소</th><th>활성</th><th>관리</th></tr></thead>
+      <tbody id="cust-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Customer Modal -->
+<div class="modal-bg" id="customer-modal">
+  <div class="modal">
+    <h3 id="cust-modal-title">고객사 등록</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>고객사명 *</label><input id="cm-name" placeholder="예) (주)한국기계"></div>
+      <div class="form-group"><label>담당자</label><input id="cm-contact" placeholder="홍길동"></div>
+      <div class="form-group"><label>연락처</label><input id="cm-phone" placeholder="010-0000-0000"></div>
+      <div class="form-group"><label>이메일</label><input id="cm-email" placeholder="example@company.com"></div>
+      <div class="form-group full"><label>주소</label><input id="cm-address" placeholder="주소"></div>
+      <div class="form-group"><label>메모</label><textarea id="cm-note"></textarea></div>
+      <div class="form-group"><label>활성 여부</label>
+        <select id="cm-active"><option value="1">활성</option><option value="0">비활성</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('customer-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Part Modal -->
+<div class="modal-bg" id="part-modal">
+  <div class="modal">
+    <h3 id="part-modal-title">부품 등록</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>부품명 *</label><input id="pm-name" placeholder="예) 앵귤러 베어링 70BER10H"></div>
+      <div class="form-group"><label>카테고리</label><input id="pm-cat" list="cat-list" placeholder="예) 베어링"></div>
+      <datalist id="cat-list"></datalist>
+      <div class="form-group"><label>단가 (원)</label><input id="pm-price" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label>현재고 (개)</label><input id="pm-stock" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label>안전재고 (개)</label><input id="pm-safe" type="number" min="0" placeholder="2"></div>
+      <div class="form-group"><label>단위</label><input id="pm-unit" placeholder="EA"></div>
+      <div class="form-group full"><label>메모</label><textarea id="pm-note"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('part-modal')">취소</button>
+      <button class="btn btn-primary" onclick="savePart()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock In Modal -->
+<div class="modal-bg" id="stockin-modal">
+  <div class="modal">
+    <h3>입고 처리</h3>
+    <div class="form-grid cols1">
+      <div class="form-group"><label>부품 선택 *</label><select id="si-part"></select></div>
+      <div class="form-group"><label>입고 수량 *</label><input id="si-qty" type="number" min="1" placeholder="수량"></div>
+      <div class="form-group"><label>입고일</label><input id="si-date" type="date"></div>
+      <div class="form-group"><label>메모</label><input id="si-note" placeholder="발주번호, 공급업체 등"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('stockin-modal')">취소</button>
+      <button class="btn btn-success" onclick="saveStockIn()">입고 확정</button>
+    </div>
+  </div>
+</div>
+
+<!-- Repair Modal -->
+<div class="modal-bg" id="repair-modal">
+  <div class="modal" style="max-width:760px">
+    <h3 id="repair-modal-title">수리 접수</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>수리번호</label><input id="rm-no"></div>
+      <div class="form-group"><label>스핀들 모델 *</label><input id="rm-model" placeholder="예) FANUC A06B-1234"></div>
+      <div class="form-group"><label>접수일 *</label><input id="rm-recv" type="date"></div>
+      <div class="form-group"><label>납기 (목표)</label><input id="rm-due" type="date"></div>
+      <div class="form-group"><label>견적금액 (원)</label><input id="rm-estimate" type="number" min="0" placeholder="0" oninput="calcFinal()"></div>
+      <div class="form-group"><label>할인율 (%)</label><input id="rm-disc" type="number" min="0" max="100" placeholder="0" oninput="calcFinal()"></div>
+      <div class="form-group"><label>최종금액 (원)</label><input id="rm-final" type="number" placeholder="자동계산" readonly style="background:#f8fafc"></div>
+      <div class="form-group"><label>상태</label>
+        <select id="rm-status">
+          <option>접수</option><option>분해</option><option>수리중</option><option>조립완료</option><option>출고</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>수리 내용 / 특이사항</label><textarea id="rm-note"></textarea></div>
+    </div>
+    <hr class="sec-hr">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <strong style="font-size:14px">사용 부품</strong>
+      <button class="btn btn-outline btn-sm" onclick="addPartRow()">+ 부품 추가</button>
+    </div>
+    <table class="parts-mini-table" style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="background:#f8fafc;padding:8px 10px;text-align:left;font-size:12px;border-bottom:1px solid #e5e7eb">부품</th>
+        <th style="background:#f8fafc;padding:8px 10px;text-align:right;font-size:12px;border-bottom:1px solid #e5e7eb">단가</th>
+        <th style="background:#f8fafc;padding:8px 10px;text-align:right;font-size:12px;border-bottom:1px solid #e5e7eb">수량</th>
+        <th style="background:#f8fafc;padding:8px 10px;text-align:right;font-size:12px;border-bottom:1px solid #e5e7eb">소계</th>
+        <th style="background:#f8fafc;padding:8px 10px;text-align:center;font-size:12px;border-bottom:1px solid #e5e7eb">삭제</th>
+      </tr></thead>
+      <tbody id="repair-parts-tbody"></tbody>
+    </table>
+    <div id="rm-alert" style="margin-top:10px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('repair-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveRepair()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Partner Modal -->
+<div class="modal-bg" id="partner-modal">
+  <div class="modal">
+    <h3 id="partner-modal-title">협력사 등록</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>협력사명 *</label><input id="pm2-name" placeholder="예) (주)한국베어링"></div>
+      <div class="form-group"><label>유형</label>
+        <select id="pm2-cat">
+          <option value="부품공급">부품공급</option>
+          <option value="외주수리">외주수리</option>
+          <option value="물류/운송">물류/운송</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="form-group"><label>담당자</label><input id="pm2-contact" placeholder="홍길동"></div>
+      <div class="form-group"><label>연락처</label><input id="pm2-phone" placeholder="010-0000-0000"></div>
+      <div class="form-group"><label>이메일</label><input id="pm2-email"></div>
+      <div class="form-group"><label>은행명</label><input id="pm2-bank" placeholder="예) 국민은행"></div>
+      <div class="form-group"><label>계좌번호</label><input id="pm2-account" placeholder="000-00-000000"></div>
+      <div class="form-group"><label>사업자번호</label><input id="pm2-bizno" placeholder="000-00-00000"></div>
+      <div class="form-group full"><label>주소</label><input id="pm2-address"></div>
+      <div class="form-group"><label>메모</label><textarea id="pm2-note"></textarea></div>
+      <div class="form-group"><label>활성 여부</label>
+        <select id="pm2-active"><option value="1">활성</option><option value="0">비활성</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('partner-modal')">취소</button>
+      <button class="btn btn-amber" onclick="savePartner()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order Modal -->
+<div class="modal-bg" id="order-modal">
+  <div class="modal" style="max-width:780px">
+    <h3 id="order-modal-title">발주서 작성</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>발주번호</label><input id="om-no"></div>
+      <div class="form-group"><label>협력사</label><input id="om-partner-name" readonly style="background:#f8fafc"></div>
+      <div class="form-group"><label>발주일 *</label><input id="om-date" type="date"></div>
+      <div class="form-group"><label>납기 요청일 *</label><input id="om-due" type="date"></div>
+      <div class="form-group"><label>실제 납품일</label><input id="om-delivered" type="date" placeholder="납품 후 입력"></div>
+      <div class="form-group"><label>상태</label>
+        <select id="om-status">
+          <option value="발주중">발주중</option>
+          <option value="납품완료">납품완료</option>
+          <option value="취소">취소</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>메모</label><input id="om-note" placeholder="특이사항, 배송 조건 등"></div>
+    </div>
+    <hr class="sec-hr">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="font-size:14px">발주 부품 목록</strong>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="addOrderPartRow()">+ DB 부품 선택</button>
+        <button class="btn btn-outline btn-sm" onclick="addOrderFreeRow()">+ 직접 입력</button>
+      </div>
+    </div>
+    <table class="qb-table" id="order-items-table">
+      <thead><tr>
+        <th style="width:32%">부품명</th>
+        <th class="r" style="width:14%">단가(원)</th>
+        <th class="r" style="width:10%">수량</th>
+        <th class="r" style="width:14%">소계(원)</th>
+        <th style="width:20%">비고</th>
+        <th style="width:10%;text-align:center">삭제</th>
+      </tr></thead>
+      <tbody id="order-parts-tbody"></tbody>
+    </table>
+    <div style="text-align:right;padding:6px 8px;font-size:14px">
+      발주 합계: <strong id="order-total-amt">0</strong>원
+    </div>
+    <div id="om-stock-alert" style="margin-top:4px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('order-modal')">취소</button>
+      <button class="btn btn-success" id="om-complete-btn" onclick="completeOrder()" style="display:none">납품완료 처리</button>
+      <button class="btn btn-amber" onclick="saveOrder()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction Modal (공통: 고객사/협력사) -->
+<div class="modal-bg" id="txn-modal">
+  <div class="modal">
+    <h3 id="txn-modal-title">입출금 등록</h3>
+    <input type="hidden" id="txm-entity-type">
+    <input type="hidden" id="txm-entity-id">
+    <input type="hidden" id="txm-id">
+    <div class="form-grid">
+      <div class="form-group"><label>구분 *</label>
+        <select id="txm-type" onchange="updateTxnTypeColor()">
+          <option value="입금">입금</option>
+          <option value="출금">출금</option>
+        </select>
+      </div>
+      <div class="form-group"><label>날짜 *</label><input id="txm-date" type="date"></div>
+      <div class="form-group"><label>금액 (원) *</label><input id="txm-amount" type="number" min="0" placeholder="0"></div>
+      <div class="form-group"><label>카테고리</label>
+        <select id="txm-cat">
+          <option value="수리대금">수리대금</option>
+          <option value="부품비">부품비</option>
+          <option value="공임">공임</option>
+          <option value="선급금">선급금</option>
+          <option value="환불">환불</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>메모</label><input id="txm-memo" placeholder="예) 6월 수리대금, 계산서 #1234"></div>
+      <div class="form-group"><label>참조번호 (전표/계산서)</label><input id="txm-ref" placeholder="선택입력"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('txn-modal')">취소</button>
+      <button class="btn btn-primary" id="txn-save-btn" onclick="saveTxn()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock History Modal -->
+<div class="modal-bg" id="stockhist-modal">
+  <div class="modal">
+    <h3 id="sh-title">입출고 내역</h3>
+    <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+      <table>
+        <thead><tr><th>날짜</th><th>구분</th><th>수량</th><th>참조</th><th>메모</th></tr></thead>
+        <tbody id="sh-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('stockhist-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== QUOTE MODAL =================== -->
+<div class="modal-bg" id="quote-modal">
+  <div class="modal" style="max-width:860px">
+    <h3 id="quote-modal-title">견적서 작성</h3>
+
+    <!-- 기본정보 -->
+    <div class="form-grid">
+      <div class="form-group"><label>견적번호</label><input id="qm-no"></div>
+      <div class="form-group"><label>연결 수리 (선택)</label>
+        <select id="qm-repair"><option value="">-- 없음 --</option></select>
+      </div>
+      <div class="form-group"><label>견적일</label><input id="qm-date" type="date"></div>
+      <div class="form-group"><label>유효기간</label><input id="qm-valid" type="date"></div>
+      <div class="form-group"><label>상태</label>
+        <select id="qm-status">
+          <option value="작성중">작성중</option>
+          <option value="발송">발송</option>
+          <option value="협의중">협의중</option>
+          <option value="승인">승인</option>
+          <option value="거절">거절</option>
+        </select>
+      </div>
+      <div class="form-group"><label>부가세</label>
+        <select id="qm-vat" onchange="calcQuote()">
+          <option value="0">미적용</option>
+          <option value="10" selected>별도 10%</option>
+          <option value="inc">포함</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 공임 항목 -->
+    <hr class="sec-hr">
+    <div class="qb-section-title">
+      공임 항목
+      <button class="btn btn-outline btn-sm" onclick="addLaborRow()">+ 추가</button>
+    </div>
+    <table class="qb-table" id="labor-table">
+      <thead><tr>
+        <th style="width:50%">작업 내용</th>
+        <th class="r" style="width:30%">금액 (원)</th>
+        <th style="width:20%;text-align:center">삭제</th>
+      </tr></thead>
+      <tbody id="labor-tbody"></tbody>
+    </table>
+    <div style="text-align:right;font-size:13px;color:#555;padding:4px 8px">
+      공임 소계: <strong id="labor-subtotal">0</strong>원
+    </div>
+
+    <!-- 부품 항목 -->
+    <hr class="sec-hr">
+    <div class="qb-section-title">
+      부품 항목 <span style="font-size:11px;font-weight:400;color:#888">(원가 × 마진율 = 판매가)</span>
+      <button class="btn btn-outline btn-sm" onclick="addQuotePartRow()">+ 추가</button>
+    </div>
+    <table class="qb-table" id="qpart-table">
+      <thead><tr>
+        <th style="width:26%">부품</th>
+        <th class="r" style="width:13%">원가</th>
+        <th class="r" style="width:11%">마진율%</th>
+        <th class="r" style="width:14%">판매단가</th>
+        <th class="r" style="width:10%">수량</th>
+        <th class="r" style="width:16%">소계</th>
+        <th style="width:10%;text-align:center">삭제</th>
+      </tr></thead>
+      <tbody id="qpart-tbody"></tbody>
+    </table>
+    <div style="text-align:right;font-size:13px;color:#555;padding:4px 8px">
+      부품비 소계: <strong id="qpart-subtotal">0</strong>원
+    </div>
+
+    <!-- 기타 항목 -->
+    <hr class="sec-hr">
+    <div class="qb-section-title">
+      기타 항목
+      <button class="btn btn-outline btn-sm" onclick="addOtherRow()">+ 추가</button>
+    </div>
+    <table class="qb-table">
+      <thead><tr>
+        <th style="width:50%">항목명</th>
+        <th class="r" style="width:30%">금액 (원)</th>
+        <th style="width:20%;text-align:center">삭제</th>
+      </tr></thead>
+      <tbody id="other-tbody"></tbody>
+    </table>
+    <div style="text-align:right;font-size:13px;color:#555;padding:4px 8px">
+      기타 소계: <strong id="other-subtotal">0</strong>원
+    </div>
+
+    <!-- 합계 -->
+    <hr class="sec-hr">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>협상 할인율 (%)</label>
+          <input id="qm-disc" type="number" min="0" max="100" value="0" oninput="calcQuote()" style="width:120px">
+        </div>
+        <div class="form-group">
+          <label>특이사항 / 조건</label>
+          <textarea id="qm-note" style="min-height:60px" placeholder="납기, 결제 조건, 보증 기간 등"></textarea>
+        </div>
+      </div>
+      <div class="quote-total-box" id="qm-total-box">
+        <div class="qt-row"><span>공임 합계</span><span id="qt-labor">0원</span></div>
+        <div class="qt-row"><span>부품비 합계</span><span id="qt-parts">0원</span></div>
+        <div class="qt-row"><span>기타 합계</span><span id="qt-other">0원</span></div>
+        <div class="qt-row divider"><span>공급가액</span><strong id="qt-supply">0원</strong></div>
+        <div class="qt-row" id="qt-vat-row"><span>부가세 (10%)</span><span id="qt-vat">0원</span></div>
+        <div class="qt-row" style="color:#ef4444"><span>할인금액</span><span id="qt-disc-amt">0원</span></div>
+        <div class="qt-row total"><span>최종 견적금액</span><span id="qt-total">0원</span></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('quote-modal')">취소</button>
+      <button class="btn btn-outline" onclick="printQuote()" style="border-color:#7c3aed;color:#7c3aed">인쇄 / PDF</button>
+      <button class="btn btn-success" onclick="applyQuoteToRepair()" id="apply-to-repair-btn" style="display:none">수리에 적용</button>
+      <button class="btn btn-purple" onclick="saveQuote()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =================== DATA STORE ===================
+const DB = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } },
+  set(k,v){ localStorage.setItem(k,JSON.stringify(v)); },
+  customers(){ return this.get('spm_customers'); },
+  parts(){ return this.get('spm_parts'); },
+  repairs(){ return this.get('spm_repairs'); },
+  quotes(){ return this.get('spm_quotes'); },
+  partners(){ return this.get('spm_partners'); },
+  orders(){ return this.get('spm_orders'); },
+  txns(){ return this.get('spm_txns'); },
+  stockHistory(){ return this.get('spm_stock_history'); },
+  saveCustomers(d){ this.set('spm_customers',d); },
+  saveParts(d){ this.set('spm_parts',d); },
+  saveRepairs(d){ this.set('spm_repairs',d); },
+  saveQuotes(d){ this.set('spm_quotes',d); },
+  savePartners(d){ this.set('spm_partners',d); },
+  saveOrders(d){ this.set('spm_orders',d); },
+  saveTxns(d){ this.set('spm_txns',d); },
+  saveStockHistory(d){ this.set('spm_stock_history',d); },
+};
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function comma(n){ return Number(n||0).toLocaleString('ko-KR'); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function addDays(d,n){ const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+
+const STATUS_ORDER = ['접수','분해','수리중','조립완료','출고'];
+const STATUS_COLOR = { '접수':'badge-blue','분해':'badge-yellow','수리중':'badge-red','조립완료':'badge-green','출고':'badge-gray' };
+const QSTATUS_COLOR = { '작성중':'badge-gray','발송':'badge-blue','협의중':'badge-yellow','승인':'badge-green','거절':'badge-red' };
+
+let currentCustomerId = null;
+let currentPartnerId = null;
+let editingRepairId = null;
+let editingCustomerId = null;
+let editingPartId = null;
+let editingQuoteId = null;
+let editingPartnerId = null;
+let editingTxnId = null;
+
+// =================== VIEWS ===================
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(el=>el.classList.remove('active'));
+  document.getElementById(v+'-view').classList.add('active');
+  const nb = document.getElementById('nav-'+v);
+  if(nb) nb.classList.add('active');
+  if(v==='main') renderMain();
+  if(v==='inventory') renderInventory();
+  if(v==='customers-mgmt') renderCustomersMgmt();
+  if(v==='partners') renderPartners();
+  if(v==='partner-detail') { /* rendered by openPartnerDetail */ }
+  if(v==='schedule') renderSchedule();
+  if(v==='finance')  renderFinance();
+}
+
+// =================== MAIN ===================
+function renderMain(){
+  const customers = DB.customers().filter(c=>c.active=='1'||c.active===true||c.active===1);
+  const repairs = DB.repairs();
+  const q = document.getElementById('main-search').value.toLowerCase();
+  const sf = document.getElementById('main-filter').value;
+
+  const activeRepairs = repairs.filter(r=>r.status!=='출고');
+  const shipped = repairs.filter(r=>r.status==='출고');
+  const totalEstimate = activeRepairs.reduce((s,r)=>s+(Number(r.final)||Number(r.estimate)||0),0);
+  document.getElementById('main-summary').innerHTML = `
+    <div class="summary-box"><div class="val">${customers.length}</div><div class="lbl">활성 고객사</div></div>
+    <div class="summary-box"><div class="val">${activeRepairs.length}</div><div class="lbl">진행중 수리</div></div>
+    <div class="summary-box"><div class="val">${shipped.length}</div><div class="lbl">총 출고</div></div>
+    <div class="summary-box"><div class="val">${comma(totalEstimate)}</div><div class="lbl">진행중 매출예상(원)</div></div>
+  `;
+
+  let filtered = customers.filter(c=>{
+    if(q && !c.name.toLowerCase().includes(q)) return false;
+    if(sf!=='all'){
+      const cr = repairs.filter(r=>r.customerId===c.id && r.status===sf);
+      if(!cr.length) return false;
+    }
+    return true;
+  });
+
+  const grid = document.getElementById('main-grid');
+  if(!filtered.length){ grid.innerHTML='<div class="empty"><p>고객사가 없습니다</p></div>'; return; }
+
+  grid.innerHTML = filtered.map(c=>{
+    const cr = repairs.filter(r=>r.customerId===c.id);
+    const active = cr.filter(r=>r.status!=='출고');
+    const statusBadges = [...new Set(active.map(r=>r.status))].map(s=>`<span class="badge ${STATUS_COLOR[s]}">${s}</span>`).join(' ');
+    const latest = cr.sort((a,b)=>b.receivedDate>a.receivedDate?1:-1)[0];
+    const qCount = DB.quotes().filter(q=>q.customerId===c.id).length;
+    return `<div class="customer-card" onclick="openDetail('${c.id}')">
+      <h3>${c.name}</h3>
+      <div class="meta">${c.contact||''} ${c.phone||''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${statusBadges||'<span class="badge badge-gray">수리 없음</span>'}
+      </div>
+      <div style="font-size:12px;color:#888">진행 ${active.length}건 / 전체 ${cr.length}건 · 견적서 ${qCount}건${latest?` · 최근 ${latest.receivedDate||''}`:''}</div>
+    </div>`;
+  }).join('');
+}
+
+// =================== DETAIL ===================
+function openDetail(cid){
+  currentCustomerId = cid;
+  const c = DB.customers().find(x=>x.id===cid);
+  if(!c) return;
+  document.getElementById('detail-header-info').innerHTML = `
+    <h2>${c.name}</h2>
+    <p>${c.contact||''} ${c.phone?'· '+c.phone:''} ${c.email?'· '+c.email:''}</p>
+  `;
+  showView('detail');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('active',i===0);});
+  document.querySelectorAll('.tab-content').forEach((b,i)=>{b.classList.toggle('active',i===0);});
+  renderRepairs();
+  renderQuotes();
+  renderHistory();
+  renderTxnTab('customer', currentCustomerId, 'tab-txn');
+}
+
+// 입출금 탭 공통 렌더러
+function renderTxnTab(entityType, entityId, containerId){
+  const txns = DB.txns().filter(t=>t.entityType===entityType && t.entityId===entityId)
+    .sort((a,b)=>b.date>a.date?1:-1);
+  const el = document.getElementById(containerId);
+
+  const totalIn  = txns.filter(t=>t.type==='입금').reduce((s,t)=>s+t.amount,0);
+  const totalOut = txns.filter(t=>t.type==='출금').reduce((s,t)=>s+t.amount,0);
+  const bal = totalIn - totalOut;
+
+  const isCust = entityType==='customer';
+  const addBtns = isCust
+    ? `<button class="btn btn-success btn-sm" onclick="openTxnModal('customer',null,'${entityId}','입금')">+ 입금</button>
+       <button class="btn btn-danger btn-sm"  onclick="openTxnModal('customer',null,'${entityId}','출금')">+ 출금</button>`
+    : '';
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">${addBtns}</div>
+    <div class="ledger-summary">
+      <div class="ledger-box in"><div class="lv txn-in">${comma(totalIn)}원</div><div class="ll">총 입금</div></div>
+      <div class="ledger-box out"><div class="lv txn-out">${comma(totalOut)}원</div><div class="ll">총 출금</div></div>
+      <div class="ledger-box bal"><div class="lv" style="color:${bal>=0?'#1d4ed8':'#dc2626'}">${comma(Math.abs(bal))}원${bal<0?' (초과)':''}</div><div class="ll">잔액</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>날짜</th><th>구분</th><th>카테고리</th><th class="num">금액</th><th>메모</th><th>참조번호</th><th>관리</th></tr></thead>
+        <tbody>${txns.map(t=>`
+          <tr>
+            <td>${t.date}</td>
+            <td><span class="badge ${t.type==='입금'?'badge-green':'badge-red'}">${t.type}</span></td>
+            <td style="font-size:12px;color:#666">${t.category||''}</td>
+            <td class="num ${t.type==='입금'?'txn-in':'txn-out'}">${t.type==='입금'?'+':'-'}${comma(t.amount)}</td>
+            <td style="font-size:13px">${t.memo||''}</td>
+            <td style="font-size:12px;color:#aaa">${t.refNo||''}</td>
+            <td style="white-space:nowrap">
+              <button class="btn btn-outline btn-sm" onclick="openTxnModal('${entityType}','${t.id}')">수정</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTxn('${t.id}','${entityType}','${entityId}','${containerId}')">삭제</button>
+            </td>
+          </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">입출금 내역이 없습니다</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function switchTab(tab, e){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(b=>b.classList.remove('active'));
+  if(e) e.currentTarget.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// =================== REPAIRS ===================
+function renderRepairs(){
+  const repairs = DB.repairs().filter(r=>r.customerId===currentCustomerId).sort((a,b)=>b.receivedDate>a.receivedDate?1:-1);
+  const el = document.getElementById('tab-repairs');
+  if(!repairs.length){ el.innerHTML='<div class="empty"><p>수리 접수 내역이 없습니다</p></div>'; return; }
+  el.innerHTML = repairs.map(r=>buildRepairCard(r)).join('');
+}
+
+function buildRepairCard(r){
+  const si = STATUS_ORDER.indexOf(r.status);
+  const stepDots = STATUS_ORDER.map((s,i)=>{
+    let cls = i<si?'done':i===si?'current':'';
+    return `<span class="step-dot ${cls}" title="${s}">${i+1}</span>${i<STATUS_ORDER.length-1?`<div class="step-line ${i<si?'done':''}"></div>`:''}`;
+  }).join('');
+  const stepLabels = STATUS_ORDER.map((s,i)=>`<span class="step-label ${i<si?'done':i===si?'current':''}">${s}</span>`).join('');
+
+  const parts = DB.parts();
+  const usedParts = (r.parts||[]).map(p=>{
+    const part = parts.find(x=>x.id===p.partId);
+    return part?`<tr><td>${part.name}</td><td class="num">${comma(part.price)}</td><td class="num">${p.qty}</td><td class="num">${comma(part.price*p.qty)}</td></tr>`:'';
+  }).join('');
+
+  const finalAmt = Number(r.final)||Number(r.estimate)||0;
+  const disc = Number(r.discount)||0;
+
+  return `<div class="repair-card">
+    <div class="rc-header">
+      <h4>${r.model}</h4>
+      <span class="badge ${STATUS_COLOR[r.status]}">${r.status}</span>
+      <span style="font-size:12px;color:#999;margin-left:auto">No. ${r.no||r.id.slice(-6).toUpperCase()}</span>
+      <button class="btn btn-outline btn-sm" onclick="openRepairModal('${r.id}')">수정</button>
+      ${r.status!=='출고'?`<button class="btn btn-success btn-sm" onclick="shipRepair('${r.id}')">출고 처리</button>`:''}
+      <button class="btn btn-danger btn-sm" onclick="deleteRepair('${r.id}')">삭제</button>
+    </div>
+    <div class="stepper">${stepDots}</div>
+    <div class="step-labels">${stepLabels}</div>
+    <div class="info-grid" style="margin-top:14px">
+      <div class="info-item"><label>접수일</label><span>${r.receivedDate||'-'}</span></div>
+      <div class="info-item"><label>납기</label><span>${r.dueDate||'-'}</span></div>
+      <div class="info-item"><label>견적금액</label><span>${comma(r.estimate)}원</span></div>
+      <div class="info-item"><label>할인율</label><span>${disc}%</span></div>
+      <div class="info-item"><label>최종금액</label><span style="color:#10b981">${comma(finalAmt)}원</span></div>
+      ${r.shippedDate?`<div class="info-item"><label>출고일</label><span>${r.shippedDate}</span></div>`:''}
+    </div>
+    ${r.note?`<div style="font-size:13px;color:#555;background:#f8fafc;padding:8px 12px;border-radius:6px;margin-bottom:12px">${r.note}</div>`:''}
+    ${usedParts?`<table class="parts-mini-table" style="width:100%;border-collapse:collapse">
+      <thead><tr><th>부품명</th><th class="num">단가</th><th class="num">수량</th><th class="num">소계</th></tr></thead>
+      <tbody>${usedParts}</tbody>
+      <tfoot><tr style="background:#f8fafc"><td colspan="3" style="padding:7px 10px;font-weight:700;font-size:13px">부품비 합계</td>
+      <td class="num" style="padding:7px 10px;font-weight:700">${comma((r.parts||[]).reduce((s,p)=>{const pt=DB.parts().find(x=>x.id===p.partId);return s+(pt?pt.price*p.qty:0);},0))}원</td></tr></tfoot>
+    </table>`:'<p style="font-size:13px;color:#aaa">사용 부품 없음</p>'}
+  </div>`;
+}
+
+function renderHistory(){
+  const repairs = DB.repairs().filter(r=>r.customerId===currentCustomerId).sort((a,b)=>b.receivedDate>a.receivedDate?1:-1);
+  document.getElementById('history-tbody').innerHTML = repairs.map(r=>`
+    <tr>
+      <td>${r.no||r.id.slice(-6).toUpperCase()}</td>
+      <td>${r.model}</td>
+      <td>${r.receivedDate||'-'}</td>
+      <td>${r.shippedDate||'-'}</td>
+      <td class="num">${comma(r.estimate)}</td>
+      <td class="num">${r.discount||0}%</td>
+      <td class="num" style="color:#10b981;font-weight:700">${comma(r.final||r.estimate)}</td>
+      <td><span class="badge ${STATUS_COLOR[r.status]}">${r.status}</span></td>
+    </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:#aaa;padding:30px">내역 없음</td></tr>';
+}
+
+// =================== REPAIR MODAL ===================
+function openRepairModal(repairId){
+  editingRepairId = repairId||null;
+  const r = repairId ? DB.repairs().find(x=>x.id===repairId) : null;
+  document.getElementById('repair-modal-title').textContent = r?'수리 수정':'수리 접수';
+  document.getElementById('rm-no').value = r?r.no:'RO-'+today().replace(/-/g,'').slice(2)+'-'+Math.floor(Math.random()*100).toString().padStart(2,'0');
+  document.getElementById('rm-model').value = r?r.model:'';
+  document.getElementById('rm-recv').value = r?r.receivedDate:today();
+  document.getElementById('rm-due').value = r?r.dueDate:'';
+  document.getElementById('rm-estimate').value = r?r.estimate:'';
+  document.getElementById('rm-disc').value = r?r.discount:0;
+  document.getElementById('rm-final').value = r?r.final:'';
+  document.getElementById('rm-status').value = r?r.status:'접수';
+  document.getElementById('rm-note').value = r?r.note:'';
+  document.getElementById('repair-parts-tbody').innerHTML='';
+  document.getElementById('rm-alert').innerHTML='';
+  (r&&r.parts||[]).forEach(p=>addPartRow(p.partId,p.qty));
+  openModal('repair-modal');
+}
+
+function addPartRow(partId, qty){
+  const parts = DB.parts();
+  const opts = parts.map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${p.name} (재고:${p.stock}${p.unit||'EA'})</option>`).join('');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><select onchange="updatePartRow(this)" style="width:100%;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"><option value="">-- 선택 --</option>${opts}</select></td>
+    <td class="num" style="font-size:13px;color:#555"></td>
+    <td><input type="number" min="1" value="${qty||1}" style="width:70px;padding:6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;text-align:right" oninput="updatePartRow(this)"></td>
+    <td class="num" style="font-size:13px;font-weight:600"></td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();updatePartTotals()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:4px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('repair-parts-tbody').appendChild(row);
+  updatePartRow(row.querySelector('select'));
+}
+
+function updatePartRow(el){
+  const tr = el.closest('tr');
+  const sel = tr.querySelector('select');
+  const qty = Number(tr.querySelector('input[type=number]').value)||1;
+  const part = DB.parts().find(p=>p.id===sel.value);
+  const price = part?part.price:0;
+  const tds = tr.querySelectorAll('td');
+  tds[1].textContent = part?comma(price)+'원':'';
+  tds[3].textContent = part?comma(price*qty)+'원':'';
+  updatePartTotals();
+}
+
+function updatePartTotals(){
+  const parts = DB.parts();
+  const usedMap = {};
+  document.querySelectorAll('#repair-parts-tbody tr').forEach(tr=>{
+    const pid = tr.querySelector('select').value;
+    const qty = Number(tr.querySelector('input[type=number]').value)||1;
+    if(pid) usedMap[pid]=(usedMap[pid]||0)+qty;
+  });
+  const warns = Object.entries(usedMap).filter(([pid,qty])=>{
+    const p=parts.find(x=>x.id===pid); return p&&qty>p.stock;
+  }).map(([pid,qty])=>{const p=parts.find(x=>x.id===pid);return `${p.name}: 사용 ${qty}${p.unit||'EA'} / 재고 ${p.stock}${p.unit||'EA'}`;});
+  document.getElementById('rm-alert').innerHTML = warns.length?`<div class="alert alert-warn">⚠ 재고 부족: ${warns.join(', ')}</div>`:'';
+}
+
+function calcFinal(){
+  const est=Number(document.getElementById('rm-estimate').value)||0;
+  const disc=Number(document.getElementById('rm-disc').value)||0;
+  document.getElementById('rm-final').value=Math.round(est*(1-disc/100));
+}
+
+function saveRepair(){
+  const model=document.getElementById('rm-model').value.trim();
+  if(!model){ alert('스핀들 모델을 입력하세요.'); return; }
+  const parts=[];
+  document.querySelectorAll('#repair-parts-tbody tr').forEach(tr=>{
+    const pid=tr.querySelector('select').value;
+    const qty=Number(tr.querySelector('input[type=number]').value)||1;
+    if(pid) parts.push({partId:pid,qty});
+  });
+
+  const prevStatus = editingRepairId ? (DB.repairs().find(r=>r.id===editingRepairId)||{}).status : null;
+  const newStatus = document.getElementById('rm-status').value;
+
+  const rec={
+    id: editingRepairId||uid(),
+    customerId: currentCustomerId,
+    no: document.getElementById('rm-no').value,
+    model,
+    receivedDate: document.getElementById('rm-recv').value,
+    dueDate: document.getElementById('rm-due').value,
+    estimate: Number(document.getElementById('rm-estimate').value)||0,
+    discount: Number(document.getElementById('rm-disc').value)||0,
+    final: Number(document.getElementById('rm-final').value)||0,
+    status: newStatus,
+    note: document.getElementById('rm-note').value,
+    parts,
+    shippedDate: newStatus==='출고'?(DB.repairs().find(r=>r.id===editingRepairId)||{}).shippedDate||today():null,
+  };
+
+  const repairs=DB.repairs();
+  const idx=repairs.findIndex(r=>r.id===rec.id);
+  if(idx>=0) repairs[idx]=rec; else repairs.push(rec);
+  DB.saveRepairs(repairs);
+
+  if(newStatus==='출고' && prevStatus!=='출고') deductStock(parts, rec.id);
+  if(prevStatus==='출고' && newStatus!=='출고') addBackStock(parts, rec.id);
+
+  closeModal('repair-modal');
+  renderRepairs();
+  renderHistory();
+}
+
+function shipRepair(id){
+  if(!confirm('출고 처리하시겠습니까?\n사용 부품이 재고에서 자동 차감됩니다.')) return;
+  const repairs=DB.repairs();
+  const r=repairs.find(x=>x.id===id);
+  if(!r||r.status==='출고') return;
+  const prev=r.status;
+  r.status='출고'; r.shippedDate=today();
+  DB.saveRepairs(repairs);
+  if(prev!=='출고') deductStock(r.parts||[], id);
+  renderRepairs(); renderHistory();
+}
+
+function deleteRepair(id){
+  if(!confirm('수리 내역을 삭제하시겠습니까?')) return;
+  DB.saveRepairs(DB.repairs().filter(r=>r.id!==id));
+  renderRepairs(); renderHistory();
+}
+
+// =================== STOCK ===================
+function deductStock(parts, repairId){
+  const allParts=DB.parts(); const hist=DB.stockHistory();
+  parts.forEach(p=>{
+    const part=allParts.find(x=>x.id===p.partId); if(!part) return;
+    part.stock=Math.max(0,(part.stock||0)-p.qty);
+    hist.push({id:uid(),partId:p.partId,type:'출고',qty:p.qty,date:today(),repairId,note:'수리 출고 자동차감'});
+  });
+  DB.saveParts(allParts); DB.saveStockHistory(hist);
+}
+
+function addBackStock(parts, repairId){
+  const allParts=DB.parts(); const hist=DB.stockHistory();
+  parts.forEach(p=>{
+    const part=allParts.find(x=>x.id===p.partId); if(!part) return;
+    part.stock=(part.stock||0)+p.qty;
+    hist.push({id:uid(),partId:p.partId,type:'입고',qty:p.qty,date:today(),repairId,note:'출고 취소 환원'});
+  });
+  DB.saveParts(allParts); DB.saveStockHistory(hist);
+}
+
+// =================== INVENTORY ===================
+function renderInventory(){
+  const parts=DB.parts();
+  const q=document.getElementById('inv-search').value.toLowerCase();
+  const cat=document.getElementById('inv-cat').value;
+  const cats=[...new Set(parts.map(p=>p.category).filter(Boolean))];
+  const catSel=document.getElementById('inv-cat');
+  const curVal=catSel.value;
+  catSel.innerHTML='<option value="all">전체 카테고리</option>'+cats.map(c=>`<option value="${c}" ${c===curVal?'selected':''}>${c}</option>`).join('');
+  document.getElementById('cat-list').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
+  const lowStock=parts.filter(p=>(p.stock||0)<=(p.safeStock||0));
+  const totalVal=parts.reduce((s,p)=>s+(p.price||0)*(p.stock||0),0);
+  document.getElementById('inv-summary').innerHTML=`
+    <div class="summary-box"><div class="val">${parts.length}</div><div class="lbl">부품 종류</div></div>
+    <div class="summary-box"><div class="val" style="${lowStock.length?'color:#ef4444':''}">${lowStock.length}</div><div class="lbl">부족 부품</div></div>
+    <div class="summary-box"><div class="val">${comma(totalVal)}</div><div class="lbl">재고 자산가치(원)</div></div>
+  `;
+  const filtered=parts.filter(p=>{
+    if(q && !p.name.toLowerCase().includes(q)) return false;
+    if(cat!=='all' && p.category!==cat) return false;
+    return true;
+  });
+  document.getElementById('inv-tbody').innerHTML=filtered.map(p=>{
+    const pct=p.safeStock?(p.stock/p.safeStock*100):100;
+    const barClass=pct<=50?'danger':pct<=100?'warn':'';
+    const ratio=Math.min(100,pct);
+    return `<tr>
+      <td><strong>${p.name}</strong>${p.note?`<br><span style="font-size:11px;color:#aaa">${p.note}</span>`:''}</td>
+      <td><span class="badge badge-gray">${p.category||'기타'}</span></td>
+      <td class="num">${comma(p.price)}원</td>
+      <td class="num" style="font-weight:700;color:${(p.stock||0)<=(p.safeStock||0)?'#ef4444':'#111'}">${p.stock||0} ${p.unit||'EA'}</td>
+      <td class="num">${p.safeStock||0} ${p.unit||'EA'}</td>
+      <td><div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-bar-fill ${barClass}" style="width:${ratio}%"></div></div><span style="font-size:12px;color:#888;min-width:36px">${Math.round(pct)}%</span></div></td>
+      <td><button class="btn btn-outline btn-sm" onclick="quickStockIn('${p.id}')">+ 입고</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="openPartModal('${p.id}')">수정</button>
+        <button class="btn btn-outline btn-sm" onclick="showStockHist('${p.id}')">내역</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePart('${p.id}')">삭제</button>
+      </td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="8" style="text-align:center;color:#aaa;padding:40px">등록된 부품이 없습니다</td></tr>`;
+}
+
+function quickStockIn(partId){ openStockInModal(partId); }
+
+function openStockInModal(partId){
+  const parts=DB.parts();
+  document.getElementById('si-part').innerHTML=parts.map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${p.name} (현재고: ${p.stock||0})</option>`).join('');
+  document.getElementById('si-qty').value='';
+  document.getElementById('si-date').value=today();
+  document.getElementById('si-note').value='';
+  openModal('stockin-modal');
+}
+
+function saveStockIn(){
+  const pid=document.getElementById('si-part').value;
+  const qty=Number(document.getElementById('si-qty').value);
+  if(!pid||!qty||qty<1){ alert('부품과 수량을 입력하세요.'); return; }
+  const parts=DB.parts();
+  const p=parts.find(x=>x.id===pid); if(!p) return;
+  p.stock=(p.stock||0)+qty;
+  DB.saveParts(parts);
+  const hist=DB.stockHistory();
+  hist.push({id:uid(),partId:pid,type:'입고',qty,date:document.getElementById('si-date').value,note:document.getElementById('si-note').value});
+  DB.saveStockHistory(hist);
+  closeModal('stockin-modal');
+  renderInventory();
+}
+
+function showStockHist(partId){
+  const part=DB.parts().find(p=>p.id===partId);
+  document.getElementById('sh-title').textContent=(part?.name||'부품')+' 입출고 내역';
+  const hist=DB.stockHistory().filter(h=>h.partId===partId).sort((a,b)=>b.date>a.date?1:-1);
+  document.getElementById('sh-tbody').innerHTML=hist.map(h=>`
+    <tr>
+      <td>${h.date}</td>
+      <td><span class="badge ${h.type==='입고'?'badge-green':'badge-red'}">${h.type}</span></td>
+      <td class="num">${h.type==='출고'?'-':'+'} ${h.qty}</td>
+      <td style="font-size:12px;color:#888">${h.repairId?'수리#'+h.repairId.slice(-6).toUpperCase():''}</td>
+      <td style="font-size:12px;color:#888">${h.note||''}</td>
+    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">내역 없음</td></tr>';
+  openModal('stockhist-modal');
+}
+
+function openPartModal(partId){
+  editingPartId=partId||null;
+  const p=partId?DB.parts().find(x=>x.id===partId):null;
+  document.getElementById('part-modal-title').textContent=p?'부품 수정':'부품 등록';
+  document.getElementById('pm-name').value=p?p.name:'';
+  document.getElementById('pm-cat').value=p?p.category||'':'';
+  document.getElementById('pm-price').value=p?p.price:'';
+  document.getElementById('pm-stock').value=p?p.stock:'';
+  document.getElementById('pm-safe').value=p?p.safeStock||'':'';
+  document.getElementById('pm-unit').value=p?p.unit||'EA':'EA';
+  document.getElementById('pm-note').value=p?p.note||'':'';
+  openModal('part-modal');
+}
+
+function savePart(){
+  const name=document.getElementById('pm-name').value.trim();
+  if(!name){ alert('부품명을 입력하세요.'); return; }
+  const rec={
+    id:editingPartId||uid(), name,
+    category:document.getElementById('pm-cat').value.trim(),
+    price:Number(document.getElementById('pm-price').value)||0,
+    stock:Number(document.getElementById('pm-stock').value)||0,
+    safeStock:Number(document.getElementById('pm-safe').value)||0,
+    unit:document.getElementById('pm-unit').value||'EA',
+    note:document.getElementById('pm-note').value,
+  };
+  const parts=DB.parts();
+  const idx=parts.findIndex(p=>p.id===rec.id);
+  if(idx>=0) parts[idx]=rec; else parts.push(rec);
+  DB.saveParts(parts);
+  closeModal('part-modal');
+  renderInventory();
+}
+
+function deletePart(id){
+  if(!confirm('부품을 삭제하시겠습니까?')) return;
+  DB.saveParts(DB.parts().filter(p=>p.id!==id));
+  renderInventory();
+}
+
+// =================== CUSTOMERS MGMT ===================
+function renderCustomersMgmt(){
+  document.getElementById('cust-tbody').innerHTML=DB.customers().map(c=>`
+    <tr>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.contact||'-'}</td>
+      <td>${c.phone||'-'}</td>
+      <td>${c.email||'-'}</td>
+      <td style="font-size:12px;color:#666">${c.address||'-'}</td>
+      <td><span class="badge ${c.active=='1'||c.active===1||c.active===true?'badge-green':'badge-gray'}">${c.active=='1'||c.active===1||c.active===true?'활성':'비활성'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="openCustomerModal('${c.id}')">수정</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.id}')">삭제</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:#aaa;padding:40px">등록된 고객사가 없습니다</td></tr>';
+}
+
+function openCustomerModal(cid){
+  editingCustomerId=cid||null;
+  const c=cid?DB.customers().find(x=>x.id===cid):null;
+  document.getElementById('cust-modal-title').textContent=c?'고객사 수정':'고객사 등록';
+  document.getElementById('cm-name').value=c?c.name:'';
+  document.getElementById('cm-contact').value=c?c.contact||'':'';
+  document.getElementById('cm-phone').value=c?c.phone||'':'';
+  document.getElementById('cm-email').value=c?c.email||'':'';
+  document.getElementById('cm-address').value=c?c.address||'':'';
+  document.getElementById('cm-note').value=c?c.note||'':'';
+  document.getElementById('cm-active').value=c?(c.active=='1'||c.active===1||c.active===true?'1':'0'):'1';
+  openModal('customer-modal');
+}
+
+function saveCustomer(){
+  const name=document.getElementById('cm-name').value.trim();
+  if(!name){ alert('고객사명을 입력하세요.'); return; }
+  const rec={
+    id:editingCustomerId||uid(), name,
+    contact:document.getElementById('cm-contact').value,
+    phone:document.getElementById('cm-phone').value,
+    email:document.getElementById('cm-email').value,
+    address:document.getElementById('cm-address').value,
+    note:document.getElementById('cm-note').value,
+    active:document.getElementById('cm-active').value==='1',
+  };
+  const customers=DB.customers();
+  const idx=customers.findIndex(c=>c.id===rec.id);
+  if(idx>=0) customers[idx]=rec; else customers.push(rec);
+  DB.saveCustomers(customers);
+  closeModal('customer-modal');
+  renderCustomersMgmt();
+}
+
+function deleteCustomer(id){
+  if(!confirm('고객사를 삭제하시겠습니까?')) return;
+  DB.saveCustomers(DB.customers().filter(c=>c.id!==id));
+  renderCustomersMgmt();
+}
+
+// =================== QUOTE MODAL ===================
+function openQuoteModal(quoteId){
+  editingQuoteId = quoteId||null;
+  const q = quoteId ? DB.quotes().find(x=>x.id===quoteId) : null;
+
+  document.getElementById('quote-modal-title').textContent = q?'견적서 수정':'견적서 작성';
+
+  // 기본정보
+  const qNo = q?q.no:'QT-'+today().replace(/-/g,'').slice(2)+'-'+Math.floor(Math.random()*100).toString().padStart(2,'0');
+  document.getElementById('qm-no').value = qNo;
+  document.getElementById('qm-date').value = q?q.date:today();
+  document.getElementById('qm-valid').value = q?q.validUntil:addDays(today(),30);
+  document.getElementById('qm-status').value = q?q.status:'작성중';
+  document.getElementById('qm-vat').value = q?(q.vatRate==='inc'?'inc':String(q.vatRate||0)):'10';
+  document.getElementById('qm-disc').value = q?q.discountRate||0:0;
+  document.getElementById('qm-note').value = q?q.note||'':'납기일로부터 30일 이내 결제\n수리 보증기간: 6개월';
+
+  // 연결 수리 목록
+  const repairs = DB.repairs().filter(r=>r.customerId===currentCustomerId);
+  document.getElementById('qm-repair').innerHTML = '<option value="">-- 없음 --</option>'+
+    repairs.map(r=>`<option value="${r.id}" ${q&&q.repairId===r.id?'selected':''}>${r.no||r.id.slice(-6).toUpperCase()} - ${r.model}</option>`).join('');
+
+  // 공임 rows
+  document.getElementById('labor-tbody').innerHTML='';
+  (q&&q.laborItems||[{desc:'스핀들 분해 및 세척',amount:0},{desc:'부품 교체 및 조립',amount:0},{desc:'정밀 테스트',amount:0}]).forEach(l=>addLaborRow(l.desc,l.amount));
+
+  // 부품 rows
+  document.getElementById('qpart-tbody').innerHTML='';
+  (q&&q.partItems||[]).forEach(p=>addQuotePartRow(p.partId,p.qty,p.margin,p.salePrice,p.name));
+
+  // 기타 rows
+  document.getElementById('other-tbody').innerHTML='';
+  (q&&q.otherItems||[]).forEach(o=>addOtherRow(o.desc,o.amount));
+
+  // apply-to-repair button
+  document.getElementById('apply-to-repair-btn').style.display = document.getElementById('qm-repair').value ? 'inline-block':'none';
+  document.getElementById('qm-repair').addEventListener('change', function(){
+    document.getElementById('apply-to-repair-btn').style.display = this.value?'inline-block':'none';
+  });
+
+  calcQuote();
+  openModal('quote-modal');
+}
+
+// Labor rows
+function addLaborRow(desc, amount){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${desc||''}" placeholder="작업 내용" style="width:100%" oninput="calcQuote()"></td>
+    <td><input type="number" min="0" value="${amount||0}" style="width:100%;text-align:right" oninput="calcQuote()"></td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();calcQuote()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:3px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('labor-tbody').appendChild(tr);
+}
+
+// Quote part rows
+function addQuotePartRow(partId, qty, margin, salePrice, freeName){
+  const parts = DB.parts();
+  const opts = parts.map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${p.name}</option>`).join('');
+  const tr = document.createElement('tr');
+  const selectedPart = parts.find(p=>p.id===partId);
+  const costVal = selectedPart?selectedPart.price:0;
+  const marginVal = margin!=null?margin:30;
+  const salePriceVal = salePrice!=null?salePrice:Math.round(costVal*(1+marginVal/100));
+  tr.innerHTML = `
+    <td><select onchange="updateQPartRow(this)" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid #d1d5db;border-radius:6px">
+      <option value="">-- 선택 --</option>${opts}</select></td>
+    <td class="r" style="font-size:12px;color:#666;white-space:nowrap" data-cost="${costVal}">${comma(costVal)}</td>
+    <td><input type="number" min="0" max="999" value="${marginVal}" style="width:60px;text-align:right" oninput="updateQPartRow(this)" data-type="margin"></td>
+    <td><input type="number" min="0" value="${salePriceVal}" style="width:90px;text-align:right" oninput="updateQPartRow(this)" data-type="sale"></td>
+    <td><input type="number" min="1" value="${qty||1}" style="width:55px;text-align:right" oninput="updateQPartRow(this)" data-type="qty"></td>
+    <td class="r" style="font-size:13px;font-weight:600" data-sub="${salePriceVal*(qty||1)}">${comma(salePriceVal*(qty||1))}</td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();calcQuote()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:3px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('qpart-tbody').appendChild(tr);
+  if(partId) updateQPartRow(tr.querySelector('select'));
+}
+
+function updateQPartRow(el){
+  const tr = el.closest('tr');
+  const sel = tr.querySelector('select');
+  const part = DB.parts().find(p=>p.id===sel.value);
+  const costTd = tr.querySelector('[data-cost]');
+  const marginInput = tr.querySelector('[data-type=margin]');
+  const saleInput = tr.querySelector('[data-type=sale]');
+  const qtyInput = tr.querySelector('[data-type=qty]');
+  const subTd = tr.querySelector('[data-sub]');
+
+  if(part){
+    const cost = part.price;
+    costTd.textContent = comma(cost);
+    costTd.dataset.cost = cost;
+    // if triggered by part select or margin change, recalc sale price
+    if(el === sel || el === marginInput){
+      const margin = Number(marginInput.value)||0;
+      saleInput.value = Math.round(cost*(1+margin/100));
+    }
+  }
+
+  const sale = Number(saleInput.value)||0;
+  const qty = Number(qtyInput.value)||1;
+  const sub = sale*qty;
+  subTd.textContent = comma(sub);
+  subTd.dataset.sub = sub;
+  calcQuote();
+}
+
+// Other rows
+function addOtherRow(desc, amount){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${desc||''}" placeholder="항목명" style="width:100%" oninput="calcQuote()"></td>
+    <td><input type="number" min="0" value="${amount||0}" style="width:100%;text-align:right" oninput="calcQuote()"></td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();calcQuote()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:3px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('other-tbody').appendChild(tr);
+}
+
+function calcQuote(){
+  // labor
+  let laborSum=0;
+  document.querySelectorAll('#labor-tbody tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    laborSum+=Number(inputs[1]?.value)||0;
+  });
+  document.getElementById('labor-subtotal').textContent=comma(laborSum);
+
+  // parts
+  let partsSum=0;
+  document.querySelectorAll('#qpart-tbody tr').forEach(tr=>{
+    partsSum+=Number(tr.querySelector('[data-sub]')?.dataset.sub||0);
+  });
+  document.getElementById('qpart-subtotal').textContent=comma(partsSum);
+
+  // other
+  let otherSum=0;
+  document.querySelectorAll('#other-tbody tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    otherSum+=Number(inputs[1]?.value)||0;
+  });
+  document.getElementById('other-subtotal').textContent=comma(otherSum);
+
+  const supply=laborSum+partsSum+otherSum;
+  const vatOpt=document.getElementById('qm-vat').value;
+  const disc=Number(document.getElementById('qm-disc').value)||0;
+
+  let vatAmt=0, totalBeforeDisc=supply;
+  if(vatOpt==='10') vatAmt=Math.round(supply*0.1);
+  else if(vatOpt==='inc') vatAmt=Math.round(supply/11);
+
+  totalBeforeDisc=supply+vatAmt;
+  const discAmt=Math.round(totalBeforeDisc*disc/100);
+  const total=totalBeforeDisc-discAmt;
+
+  document.getElementById('qt-labor').textContent=comma(laborSum)+'원';
+  document.getElementById('qt-parts').textContent=comma(partsSum)+'원';
+  document.getElementById('qt-other').textContent=comma(otherSum)+'원';
+  document.getElementById('qt-supply').textContent=comma(supply)+'원';
+  const vatRow=document.getElementById('qt-vat-row');
+  if(vatOpt==='0'){ vatRow.style.display='none'; }
+  else { vatRow.style.display='flex'; document.getElementById('qt-vat').textContent=comma(vatAmt)+'원'; vatRow.querySelector('span').textContent=vatOpt==='inc'?'부가세 (포함)':'부가세 (10%)'; }
+  document.getElementById('qt-disc-amt').textContent='-'+comma(discAmt)+'원';
+  document.getElementById('qt-total').textContent=comma(total)+'원';
+}
+
+function collectQuoteData(){
+  const laborItems=[];
+  document.querySelectorAll('#labor-tbody tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const desc=inputs[0]?.value.trim(); const amount=Number(inputs[1]?.value)||0;
+    if(desc||amount) laborItems.push({desc,amount});
+  });
+
+  const partItems=[];
+  document.querySelectorAll('#qpart-tbody tr').forEach(tr=>{
+    const pid=tr.querySelector('select')?.value; if(!pid) return;
+    const part=DB.parts().find(p=>p.id===pid);
+    const margin=Number(tr.querySelector('[data-type=margin]')?.value)||0;
+    const salePrice=Number(tr.querySelector('[data-type=sale]')?.value)||0;
+    const qty=Number(tr.querySelector('[data-type=qty]')?.value)||1;
+    partItems.push({partId:pid, name:part?.name||'', costPrice:part?.price||0, margin, salePrice, qty});
+  });
+
+  const otherItems=[];
+  document.querySelectorAll('#other-tbody tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const desc=inputs[0]?.value.trim(); const amount=Number(inputs[1]?.value)||0;
+    if(desc||amount) otherItems.push({desc,amount});
+  });
+
+  const laborSum=laborItems.reduce((s,l)=>s+l.amount,0);
+  const partsSum=partItems.reduce((s,p)=>s+p.salePrice*p.qty,0);
+  const otherSum=otherItems.reduce((s,o)=>s+o.amount,0);
+  const supply=laborSum+partsSum+otherSum;
+  const vatOpt=document.getElementById('qm-vat').value;
+  const disc=Number(document.getElementById('qm-disc').value)||0;
+  let vatAmt=0;
+  if(vatOpt==='10') vatAmt=Math.round(supply*0.1);
+  else if(vatOpt==='inc') vatAmt=Math.round(supply/11);
+  const totalBeforeDisc=supply+vatAmt;
+  const discAmt=Math.round(totalBeforeDisc*disc/100);
+  const total=totalBeforeDisc-discAmt;
+
+  return {
+    id:editingQuoteId||uid(),
+    customerId:currentCustomerId,
+    repairId:document.getElementById('qm-repair').value||null,
+    no:document.getElementById('qm-no').value,
+    date:document.getElementById('qm-date').value,
+    validUntil:document.getElementById('qm-valid').value,
+    status:document.getElementById('qm-status').value,
+    vatRate:vatOpt,
+    discountRate:disc,
+    laborItems, partItems, otherItems,
+    supply, vatAmount:vatAmt, discountAmount:discAmt, total,
+    note:document.getElementById('qm-note').value,
+  };
+}
+
+function saveQuote(){
+  const data=collectQuoteData();
+  const quotes=DB.quotes();
+  const idx=quotes.findIndex(q=>q.id===data.id);
+  if(idx>=0) quotes[idx]=data; else quotes.push(data);
+  DB.saveQuotes(quotes);
+  closeModal('quote-modal');
+  renderQuotes();
+}
+
+function applyQuoteToRepair(){
+  const data=collectQuoteData();
+  const rid=document.getElementById('qm-repair').value;
+  if(!rid){ alert('연결된 수리를 선택하세요.'); return; }
+  const repairs=DB.repairs();
+  const r=repairs.find(x=>x.id===rid);
+  if(!r){ return; }
+  r.estimate=data.total;
+  r.final=data.total;
+  r.discount=0;
+  DB.saveRepairs(repairs);
+  // also save quote
+  const quotes=DB.quotes();
+  const idx=quotes.findIndex(q=>q.id===data.id);
+  if(idx>=0) quotes[idx]=data; else quotes.push(data);
+  DB.saveQuotes(quotes);
+  closeModal('quote-modal');
+  renderRepairs(); renderQuotes(); renderHistory();
+  alert(`견적금액 ${comma(data.total)}원이 수리 내역에 적용되었습니다.`);
+}
+
+function deleteQuote(id){
+  if(!confirm('견적서를 삭제하시겠습니까?')) return;
+  DB.saveQuotes(DB.quotes().filter(q=>q.id!==id));
+  renderQuotes();
+}
+
+// =================== RENDER QUOTES TAB ===================
+function renderQuotes(){
+  const quotes=DB.quotes().filter(q=>q.customerId===currentCustomerId).sort((a,b)=>b.date>a.date?1:-1);
+  const el=document.getElementById('tab-quotes');
+  if(!quotes.length){
+    el.innerHTML='<div class="empty"><p>작성된 견적서가 없습니다.<br>우측 상단 [+ 견적서 작성]으로 추가하세요.</p></div>';
+    return;
+  }
+
+  el.innerHTML=quotes.map(q=>{
+    const linkedRepair=q.repairId?DB.repairs().find(r=>r.id===q.repairId):null;
+    const laborSum=q.laborItems.reduce((s,l)=>s+l.amount,0);
+    const partsSum=q.partItems.reduce((s,p)=>s+p.salePrice*p.qty,0);
+    const vatOpt=q.vatRate;
+    const vatLabel=vatOpt==='0'?'미적용':vatOpt==='inc'?'부가세포함':'부가세 10%';
+
+    return `<div class="quote-card">
+      <div class="qc-header">
+        <h4>견적서 ${q.no}</h4>
+        <span class="badge ${QSTATUS_COLOR[q.status]||'badge-gray'}">${q.status}</span>
+        ${linkedRepair?`<span class="badge badge-blue" style="font-size:11px">수리: ${linkedRepair.model}</span>`:''}
+        <span style="font-size:12px;color:#aaa;margin-left:auto">${q.date} ~ ${q.validUntil}</span>
+        <button class="btn btn-outline btn-sm" onclick="openQuoteModal('${q.id}')">수정</button>
+        <button class="btn btn-outline btn-sm" onclick="printQuoteById('${q.id}')" style="border-color:#7c3aed;color:#7c3aed">인쇄</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteQuote('${q.id}')">삭제</button>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><label>공임 합계</label><span>${comma(laborSum)}원</span></div>
+        <div class="info-item"><label>부품비 합계</label><span>${comma(partsSum)}원</span></div>
+        <div class="info-item"><label>공급가액</label><span>${comma(q.supply)}원</span></div>
+        <div class="info-item"><label>부가세 (${vatLabel})</label><span>${comma(q.vatAmount)}원</span></div>
+        <div class="info-item"><label>할인율</label><span>${q.discountRate||0}%</span></div>
+        <div class="info-item"><label>최종 견적금액</label><span style="color:#7c3aed;font-size:16px">${comma(q.total)}원</span></div>
+      </div>
+      ${q.partItems.length?`<details style="margin-top:10px">
+        <summary style="cursor:pointer;font-size:13px;color:#555;user-select:none">부품 상세 보기 (${q.partItems.length}종)</summary>
+        <table class="parts-mini-table" style="width:100%;border-collapse:collapse;margin-top:8px">
+          <thead><tr>
+            <th>부품명</th><th class="num">원가</th><th class="num">마진율</th>
+            <th class="num">판매단가</th><th class="num">수량</th><th class="num">소계</th>
+          </tr></thead>
+          <tbody>${q.partItems.map(p=>`<tr>
+            <td>${p.name}</td>
+            <td class="num">${comma(p.costPrice)}</td>
+            <td class="num">${p.margin}%</td>
+            <td class="num">${comma(p.salePrice)}</td>
+            <td class="num">${p.qty}</td>
+            <td class="num" style="font-weight:700">${comma(p.salePrice*p.qty)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </details>`:''}
+      ${q.note?`<div style="margin-top:10px;font-size:12px;color:#666;background:#f8fafc;padding:8px 12px;border-radius:6px;white-space:pre-line">${q.note}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// =================== PRINT QUOTE ===================
+function printQuote(){
+  const data=collectQuoteData();
+  openPrintWindow(data);
+}
+
+function printQuoteById(id){
+  const q=DB.quotes().find(x=>x.id===id);
+  if(q) openPrintWindow(q);
+}
+
+function openPrintWindow(q){
+  const customer=DB.customers().find(c=>c.id===q.customerId)||{name:'(고객사)'};
+  const linkedRepair=q.repairId?DB.repairs().find(r=>r.id===q.repairId):null;
+  const vatLabel=q.vatRate==='0'?'미적용':q.vatRate==='inc'?'부가세포함':'부가세 별도 10%';
+
+  const laborRows=(q.laborItems||[]).filter(l=>l.desc||l.amount).map((l,i)=>`
+    <tr><td>${i+1}</td><td colspan="4">${l.desc||''}</td><td style="text-align:right">${comma(l.amount)}</td></tr>`).join('');
+
+  const partRows=(q.partItems||[]).map((p,i)=>`
+    <tr><td>${i+1}</td><td>${p.name}</td><td style="text-align:right">${comma(p.costPrice)}</td>
+    <td style="text-align:right">${p.margin}%</td><td style="text-align:right">${comma(p.salePrice)}</td>
+    <td style="text-align:right">${p.qty}</td><td style="text-align:right">${comma(p.salePrice*p.qty)}</td></tr>`).join('');
+
+  const otherRows=(q.otherItems||[]).filter(o=>o.desc||o.amount).map((o,i)=>`
+    <tr><td>${i+1}</td><td colspan="4">${o.desc||''}</td><td style="text-align:right">${comma(o.amount)}</td></tr>`).join('');
+
+  const html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+  <title>견적서 ${q.no}</title>
+  <style>
+    body{font-family:'Malgun Gothic',sans-serif;margin:0;padding:30px;color:#111;font-size:13px;}
+    h1{font-size:28px;text-align:center;margin:0 0 4px;letter-spacing:8px;}
+    .sub-title{text-align:center;font-size:14px;color:#555;margin-bottom:24px;}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+    .meta-box{border:1px solid #ccc;border-radius:6px;padding:12px 16px;}
+    .meta-box h3{font-size:12px;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:.5px;}
+    .meta-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px dotted #eee;}
+    .meta-row:last-child{border:none;}
+    .meta-row .k{color:#555;}
+    .meta-row .v{font-weight:600;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+    th{background:#f1f5f9;padding:8px 10px;border:1px solid #ddd;font-size:12px;}
+    td{padding:7px 10px;border:1px solid #e5e7eb;}
+    .section-title{font-size:14px;font-weight:700;margin:18px 0 6px;padding-left:4px;border-left:4px solid #1a2744;}
+    .total-box{border:2px solid #1a2744;border-radius:8px;padding:16px 20px;margin-top:20px;max-width:360px;margin-left:auto;}
+    .t-row{display:flex;justify-content:space-between;padding:5px 0;font-size:14px;}
+    .t-row.big{font-size:18px;font-weight:700;border-top:2px solid #1a2744;margin-top:8px;padding-top:10px;}
+    .note-box{background:#f8fafc;border-radius:6px;padding:12px 16px;font-size:12px;color:#555;white-space:pre-line;margin-top:16px;}
+    .footer{text-align:center;margin-top:30px;font-size:12px;color:#aaa;border-top:1px solid #eee;padding-top:14px;}
+    @media print{body{padding:10px;}button{display:none;}}
+  </style></head><body>
+  <h1>견 적 서</h1>
+  <div class="sub-title">Spindle Repair Service</div>
+
+  <div class="meta-grid">
+    <div class="meta-box">
+      <h3>수신</h3>
+      <div class="meta-row"><span class="k">업체명</span><span class="v">${customer.name}</span></div>
+      <div class="meta-row"><span class="k">담당자</span><span class="v">${customer.contact||'-'}</span></div>
+      <div class="meta-row"><span class="k">연락처</span><span class="v">${customer.phone||'-'}</span></div>
+      ${linkedRepair?`<div class="meta-row"><span class="k">수리 모델</span><span class="v">${linkedRepair.model}</span></div>`:''}
+    </div>
+    <div class="meta-box">
+      <h3>견적 정보</h3>
+      <div class="meta-row"><span class="k">견적번호</span><span class="v">${q.no}</span></div>
+      <div class="meta-row"><span class="k">견적일</span><span class="v">${q.date}</span></div>
+      <div class="meta-row"><span class="k">유효기간</span><span class="v">${q.validUntil}</span></div>
+      <div class="meta-row"><span class="k">부가세</span><span class="v">${vatLabel}</span></div>
+    </div>
+  </div>
+
+  ${laborRows?`<div class="section-title">공임 항목</div>
+  <table><thead><tr><th style="width:40px">No</th><th>작업 내용</th><th colspan="4"></th><th style="width:100px;text-align:right">금액(원)</th></tr></thead>
+  <tbody>${laborRows}</tbody>
+  <tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;background:#f8fafc">공임 소계</td>
+  <td style="text-align:right;font-weight:700;background:#f8fafc">${comma((q.laborItems||[]).reduce((s,l)=>s+l.amount,0))}</td></tr></tfoot></table>`:''}
+
+  ${partRows?`<div class="section-title">부품 항목</div>
+  <table><thead><tr><th style="width:40px">No</th><th>부품명</th><th style="text-align:right">원가</th><th style="text-align:right">마진율</th><th style="text-align:right">판매단가</th><th style="text-align:right">수량</th><th style="text-align:right">소계(원)</th></tr></thead>
+  <tbody>${partRows}</tbody>
+  <tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;background:#f8fafc">부품비 소계</td>
+  <td style="text-align:right;font-weight:700;background:#f8fafc">${comma((q.partItems||[]).reduce((s,p)=>s+p.salePrice*p.qty,0))}</td></tr></tfoot></table>`:''}
+
+  ${otherRows?`<div class="section-title">기타 항목</div>
+  <table><thead><tr><th style="width:40px">No</th><th>항목명</th><th colspan="4"></th><th style="text-align:right">금액(원)</th></tr></thead>
+  <tbody>${otherRows}</tbody>
+  <tfoot><tr><td colspan="5" style="text-align:right;font-weight:700;background:#f8fafc">기타 소계</td>
+  <td style="text-align:right;font-weight:700;background:#f8fafc">${comma((q.otherItems||[]).reduce((s,o)=>s+o.amount,0))}</td></tr></tfoot></table>`:''}
+
+  <div class="total-box">
+    <div class="t-row"><span>공임 합계</span><span>${comma((q.laborItems||[]).reduce((s,l)=>s+l.amount,0))}원</span></div>
+    <div class="t-row"><span>부품비 합계</span><span>${comma((q.partItems||[]).reduce((s,p)=>s+p.salePrice*p.qty,0))}원</span></div>
+    <div class="t-row"><span>기타 합계</span><span>${comma((q.otherItems||[]).reduce((s,o)=>s+o.amount,0))}원</span></div>
+    <div class="t-row" style="border-top:1px solid #ccc;padding-top:8px;margin-top:6px"><span>공급가액</span><strong>${comma(q.supply)}원</strong></div>
+    ${q.vatAmount?`<div class="t-row"><span>${vatLabel}</span><span>${comma(q.vatAmount)}원</span></div>`:''}
+    ${q.discountAmount?`<div class="t-row" style="color:#e00"><span>할인 (${q.discountRate}%)</span><span>-${comma(q.discountAmount)}원</span></div>`:''}
+    <div class="t-row big"><span>최종 견적금액</span><span>${comma(q.total)}원</span></div>
+  </div>
+
+  ${q.note?`<div class="note-box"><strong>특이사항 / 조건</strong><br>${q.note}</div>`:''}
+
+  <div class="footer">본 견적서는 유효기간 내에만 유효합니다.</div>
+  <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 30px;background:#1a2744;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">인쇄 / PDF 저장</button></div>
+  </body></html>`;
+
+  const win=window.open('','_blank','width=900,height=800');
+  win.document.write(html);
+  win.document.close();
+}
+
+// =================== TRANSACTION ===================
+function openTxnModal(entityType, txnId, entityId, defaultType){
+  editingTxnId = txnId||null;
+  const t = txnId ? DB.txns().find(x=>x.id===txnId) : null;
+  document.getElementById('txm-entity-type').value = t ? t.entityType : (entityType||'customer');
+  document.getElementById('txm-entity-id').value   = t ? t.entityId   : (entityId||'');
+  document.getElementById('txm-id').value           = t ? t.id : '';
+  document.getElementById('txm-type').value    = t ? t.type   : (defaultType||'입금');
+  document.getElementById('txm-date').value    = t ? t.date   : today();
+  document.getElementById('txm-amount').value  = t ? t.amount : '';
+  document.getElementById('txm-cat').value     = t ? (t.category||'수리대금') : '수리대금';
+  document.getElementById('txm-memo').value    = t ? (t.memo||'') : '';
+  document.getElementById('txm-ref').value     = t ? (t.refNo||'') : '';
+  const et = document.getElementById('txm-entity-type').value;
+  document.getElementById('txn-modal-title').textContent =
+    (t?'입출금 수정':'입출금 등록') + ' — ' + (et==='customer'?'고객사':'협력사');
+  updateTxnTypeColor();
+  openModal('txn-modal');
+}
+
+function updateTxnTypeColor(){
+  const btn = document.getElementById('txn-save-btn');
+  btn.className = document.getElementById('txm-type').value==='입금'
+    ? 'btn btn-success' : 'btn btn-danger';
+}
+
+function saveTxn(){
+  const amount = Number(document.getElementById('txm-amount').value);
+  if(!amount || amount<=0){ alert('금액을 입력하세요.'); return; }
+  const entityType = document.getElementById('txm-entity-type').value;
+  const entityId   = document.getElementById('txm-entity-id').value;
+  const existId    = document.getElementById('txm-id').value;
+  const rec = {
+    id:       existId || uid(),
+    entityType,
+    entityId,
+    type:     document.getElementById('txm-type').value,
+    date:     document.getElementById('txm-date').value,
+    amount,
+    category: document.getElementById('txm-cat').value,
+    memo:     document.getElementById('txm-memo').value,
+    refNo:    document.getElementById('txm-ref').value,
+  };
+  const txns = DB.txns();
+  const idx = txns.findIndex(t=>t.id===rec.id);
+  if(idx>=0) txns[idx]=rec; else txns.push(rec);
+  DB.saveTxns(txns);
+  closeModal('txn-modal');
+  if(entityType==='customer'){
+    renderTxnTab('customer', entityId, 'tab-txn');
+  } else {
+    renderTxnTab('partner', entityId, 'tab-ptxn');
+  }
+}
+
+function deleteTxn(id, entityType, entityId, containerId){
+  if(!confirm('삭제하시겠습니까?')) return;
+  DB.saveTxns(DB.txns().filter(t=>t.id!==id));
+  renderTxnTab(entityType, entityId, containerId);
+}
+
+// =================== PARTNERS ===================
+function renderPartners(){
+  const partners = DB.partners();
+  const q = (document.getElementById('partner-search')||{}).value?.toLowerCase()||'';
+  const cf = (document.getElementById('partner-cat-filter')||{}).value||'all';
+  const txns = DB.txns();
+
+  const totalOut = txns.filter(t=>t.entityType==='partner' && t.type==='출금').reduce((s,t)=>s+t.amount,0);
+  const totalIn  = txns.filter(t=>t.entityType==='partner' && t.type==='입금').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('partner-summary').innerHTML = `
+    <div class="summary-box"><div class="val">${partners.length}</div><div class="lbl">등록 협력사</div></div>
+    <div class="summary-box"><div class="val txn-out">${comma(totalOut)}</div><div class="lbl">총 지급액(원)</div></div>
+    <div class="summary-box"><div class="val txn-in">${comma(totalIn)}</div><div class="lbl">총 수령액(원)</div></div>
+    <div class="summary-box"><div class="val">${comma(totalOut-totalIn)}</div><div class="lbl">순 지출(원)</div></div>
+  `;
+
+  const filtered = partners.filter(p=>{
+    if(q && !p.name.toLowerCase().includes(q)) return false;
+    if(cf!=='all' && p.category!==cf) return false;
+    return true;
+  });
+
+  const grid = document.getElementById('partner-grid');
+  if(!filtered.length){ grid.innerHTML='<div class="empty"><p>등록된 협력사가 없습니다</p></div>'; return; }
+
+  grid.innerHTML = filtered.map(p=>{
+    const ptxns = txns.filter(t=>t.entityType==='partner' && t.entityId===p.id);
+    const pOut = ptxns.filter(t=>t.type==='출금').reduce((s,t)=>s+t.amount,0);
+    const pIn  = ptxns.filter(t=>t.type==='입금').reduce((s,t)=>s+t.amount,0);
+    const active = p.active=='1'||p.active===true||p.active===1;
+    return `<div class="partner-card" onclick="openPartnerDetail('${p.id}')">
+      <h3>${p.name} ${!active?'<span class="badge badge-gray">비활성</span>':''}</h3>
+      <div class="meta">${p.category||''} ${p.contact?'· '+p.contact:''} ${p.phone?'· '+p.phone:''}</div>
+      <div style="display:flex;gap:16px;font-size:13px;margin-top:6px">
+        <span class="txn-out">지급 ${comma(pOut)}원</span>
+        <span class="txn-in">수령 ${comma(pIn)}원</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openPartnerDetail(pid){
+  currentPartnerId = pid;
+  const p = DB.partners().find(x=>x.id===pid);
+  if(!p) return;
+  document.getElementById('partner-detail-header-info').innerHTML = `
+    <h2>${p.name}</h2>
+    <p>${p.category||''} ${p.contact?'· '+p.contact:''} ${p.phone?'· '+p.phone:''} ${p.email?'· '+p.email:''}</p>
+  `;
+  // reset tabs
+  document.querySelectorAll('#partner-tabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  ['ptxn','porders','pinfo'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active', t==='ptxn');
+  });
+
+  // info tab
+  document.getElementById('tab-pinfo').innerHTML = `
+    <div class="repair-card">
+      <div class="info-grid">
+        <div class="info-item"><label>유형</label><span>${p.category||'-'}</span></div>
+        <div class="info-item"><label>담당자</label><span>${p.contact||'-'}</span></div>
+        <div class="info-item"><label>연락처</label><span>${p.phone||'-'}</span></div>
+        <div class="info-item"><label>이메일</label><span>${p.email||'-'}</span></div>
+        <div class="info-item"><label>은행</label><span>${p.bankName||'-'}</span></div>
+        <div class="info-item"><label>계좌번호</label><span>${p.accountNo||'-'}</span></div>
+        <div class="info-item"><label>사업자번호</label><span>${p.bizNo||'-'}</span></div>
+        <div class="info-item"><label>주소</label><span>${p.address||'-'}</span></div>
+      </div>
+      ${p.note?`<div style="font-size:13px;color:#555;background:#f8fafc;padding:8px 12px;border-radius:6px">${p.note}</div>`:''}
+    </div>`;
+
+  renderTxnTab('partner', pid, 'tab-ptxn');
+  showView('partner-detail');
+}
+
+function switchPartnerTab(tab, e){
+  document.querySelectorAll('#partner-tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  if(e) e.currentTarget.classList.add('active');
+  ['ptxn','porders','pinfo'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='porders') renderOrders(currentPartnerId);
+}
+
+// =================== ORDERS ===================
+function renderOrders(partnerId){
+  const orders = DB.orders().filter(o=>o.partnerId===partnerId)
+    .sort((a,b)=>a.dueDate>b.dueDate?1:-1);
+  const el = document.getElementById('tab-porders');
+
+  const pending = orders.filter(o=>o.status==='발주중');
+  const done    = orders.filter(o=>o.status==='납품완료');
+  const totalOrdered   = orders.reduce((s,o)=>s+o.totalAmount,0);
+  const totalDelivered = done.reduce((s,o)=>s+o.totalAmount,0);
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;gap:12px">
+        <div class="summary-box" style="padding:10px 16px;min-width:130px">
+          <div class="val" style="font-size:17px;color:#f59e0b">${pending.length}</div>
+          <div class="lbl">진행중 발주</div>
+        </div>
+        <div class="summary-box" style="padding:10px 16px;min-width:130px">
+          <div class="val" style="font-size:17px">${comma(totalOrdered)}</div>
+          <div class="lbl">총 발주금액(원)</div>
+        </div>
+        <div class="summary-box" style="padding:10px 16px;min-width:130px">
+          <div class="val" style="font-size:17px;color:#10b981">${comma(totalDelivered)}</div>
+          <div class="lbl">납품완료(원)</div>
+        </div>
+      </div>
+      <button class="btn btn-amber btn-sm" onclick="openOrderModal()">+ 발주서 작성</button>
+    </div>
+    ${orders.length===0?'<div class="empty"><p>발주 내역이 없습니다</p></div>':
+      orders.map(o=>buildOrderCard(o)).join('')}`;
+}
+
+function buildOrderCard(o){
+  const today_ = today();
+  const overdue = o.status==='발주중' && o.dueDate < today_;
+  const doneClass = o.status==='납품완료'?'done':o.status==='취소'?'cancel':'';
+  const statusColor = {'발주중':'badge-yellow','납품완료':'badge-green','취소':'badge-gray'};
+  const rows = (o.items||[]).map(it=>`
+    <tr>
+      <td>${it.partName||it.name||''}</td>
+      <td class="num">${comma(it.unitPrice)}</td>
+      <td class="num">${it.qty}</td>
+      <td class="num" style="font-weight:600">${comma(it.unitPrice*it.qty)}</td>
+      <td style="font-size:12px;color:#888">${it.note||''}</td>
+    </tr>`).join('');
+
+  return `<div class="order-card ${doneClass}">
+    <div class="oc-header">
+      <h4>${o.orderNo}</h4>
+      <span class="badge ${statusColor[o.status]||'badge-gray'}">${o.status}</span>
+      ${overdue?'<span class="badge badge-red">납기 초과</span>':''}
+      <span style="font-size:12px;color:#888;margin-left:auto">발주일: ${o.orderDate}</span>
+      <button class="btn btn-outline btn-sm" onclick="openOrderModal('${o.id}')">수정</button>
+      ${o.status==='발주중'?`<button class="btn btn-success btn-sm" onclick="markDelivered('${o.id}')">납품완료</button>`:''}
+      <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">삭제</button>
+    </div>
+    <div class="info-grid" style="margin-bottom:10px">
+      <div class="info-item"><label>납기 요청일</label>
+        <span style="color:${overdue?'#dc2626':'#111'}">${o.dueDate}${overdue?' ⚠':''}</span>
+      </div>
+      ${o.deliveredDate?`<div class="info-item"><label>실제 납품일</label><span style="color:#10b981">${o.deliveredDate}</span></div>`:''}
+      <div class="info-item"><label>발주 총액</label><span>${comma(o.totalAmount)}원</span></div>
+    </div>
+    ${o.note?`<div style="font-size:12px;color:#666;background:#f8fafc;padding:6px 10px;border-radius:6px;margin-bottom:8px">${o.note}</div>`:''}
+    <table class="oc-items">
+      <thead><tr><th>부품명</th><th class="num">단가</th><th class="num">수량</th><th class="num">소계</th><th>비고</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+let editingOrderId = null;
+
+function openOrderModal(orderId){
+  editingOrderId = orderId||null;
+  const o = orderId ? DB.orders().find(x=>x.id===orderId) : null;
+  const partner = DB.partners().find(p=>p.id===currentPartnerId);
+
+  document.getElementById('order-modal-title').textContent = o?'발주서 수정':'발주서 작성';
+  document.getElementById('om-no').value          = o ? o.orderNo : 'PO-'+today().replace(/-/g,'').slice(2)+'-'+Math.floor(Math.random()*100).toString().padStart(2,'0');
+  document.getElementById('om-partner-name').value= partner ? partner.name : '';
+  document.getElementById('om-date').value        = o ? o.orderDate : today();
+  document.getElementById('om-due').value         = o ? o.dueDate : '';
+  document.getElementById('om-delivered').value   = o ? (o.deliveredDate||'') : '';
+  document.getElementById('om-status').value      = o ? o.status : '발주중';
+  document.getElementById('om-note').value        = o ? (o.note||'') : '';
+
+  document.getElementById('order-parts-tbody').innerHTML = '';
+  document.getElementById('om-stock-alert').innerHTML = '';
+  document.getElementById('order-total-amt').textContent = '0';
+  (o&&o.items||[]).forEach(it=>{
+    if(it.partId) addOrderPartRow(it.partId, it.qty, it.unitPrice, it.note);
+    else          addOrderFreeRow(it.partName||it.name, it.qty, it.unitPrice, it.note);
+  });
+  document.getElementById('om-complete-btn').style.display = (o && o.status==='발주중') ? 'inline-block':'none';
+  openModal('order-modal');
+}
+
+function addOrderPartRow(partId, qty, unitPrice, note){
+  const parts = DB.parts();
+  const opts = parts.map(p=>`<option value="${p.id}" ${p.id===partId?'selected':''}>${p.name} (재고:${p.stock}${p.unit||'EA'})</option>`).join('');
+  const sel = partId ? parts.find(p=>p.id===partId) : null;
+  const price = unitPrice!=null ? unitPrice : (sel?sel.price:0);
+  const tr = document.createElement('tr');
+  tr.dataset.rowtype = 'db';
+  tr.innerHTML = `
+    <td><select onchange="updateOrderRow(this)" style="width:100%;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+      <option value="">-- 선택 --</option>${opts}</select></td>
+    <td><input type="number" min="0" value="${price}" style="width:90px;text-align:right" oninput="updateOrderRow(this)"></td>
+    <td><input type="number" min="1" value="${qty||1}" style="width:60px;text-align:right" oninput="updateOrderRow(this)"></td>
+    <td class="r" style="font-size:13px;font-weight:600">${comma(price*(qty||1))}</td>
+    <td><input type="text" value="${note||''}" placeholder="비고" style="width:100%"></td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();calcOrderTotal()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:3px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('order-parts-tbody').appendChild(tr);
+  if(partId) updateOrderRow(tr.querySelector('select'));
+  else calcOrderTotal();
+}
+
+function addOrderFreeRow(name, qty, unitPrice, note){
+  const tr = document.createElement('tr');
+  tr.dataset.rowtype = 'free';
+  tr.innerHTML = `
+    <td><input type="text" value="${name||''}" placeholder="부품명 직접 입력" style="width:100%" oninput="calcOrderTotal()"></td>
+    <td><input type="number" min="0" value="${unitPrice||0}" style="width:90px;text-align:right" oninput="updateOrderRow(this)"></td>
+    <td><input type="number" min="1" value="${qty||1}" style="width:60px;text-align:right" oninput="updateOrderRow(this)"></td>
+    <td class="r" style="font-size:13px;font-weight:600">${comma((unitPrice||0)*(qty||1))}</td>
+    <td><input type="text" value="${note||''}" placeholder="비고" style="width:100%"></td>
+    <td style="text-align:center"><button onclick="this.closest('tr').remove();calcOrderTotal()" style="background:#fee2e2;color:#b91c1c;border:none;border-radius:6px;padding:3px 8px;cursor:pointer">✕</button></td>`;
+  document.getElementById('order-parts-tbody').appendChild(tr);
+  calcOrderTotal();
+}
+
+function updateOrderRow(el){
+  const tr = el.closest('tr');
+  const inputs = tr.querySelectorAll('input[type=number]');
+  const price = Number(inputs[0].value)||0;
+  const qty   = Number(inputs[1].value)||1;
+  // auto-fill unit price from DB part
+  if(tr.dataset.rowtype==='db'){
+    const sel = tr.querySelector('select');
+    const part = DB.parts().find(p=>p.id===sel.value);
+    if(part && el===sel) inputs[0].value = part.price;
+  }
+  tr.querySelectorAll('td')[3].textContent = comma((Number(inputs[0].value)||0)*qty);
+  calcOrderTotal();
+}
+
+function calcOrderTotal(){
+  let total = 0;
+  document.querySelectorAll('#order-parts-tbody tr').forEach(tr=>{
+    const inputs = tr.querySelectorAll('input[type=number]');
+    if(inputs.length>=2) total += (Number(inputs[0].value)||0)*(Number(inputs[1].value)||1);
+  });
+  document.getElementById('order-total-amt').textContent = comma(total);
+}
+
+function collectOrderItems(){
+  const items = [];
+  document.querySelectorAll('#order-parts-tbody tr').forEach(tr=>{
+    const isDb = tr.dataset.rowtype==='db';
+    const nameEl = isDb ? tr.querySelector('select') : tr.querySelector('input[type=text]');
+    const inputs = tr.querySelectorAll('input[type=number]');
+    const noteEl = tr.querySelectorAll('input[type=text]')[isDb?0:1];
+    const unitPrice = Number(inputs[0]?.value)||0;
+    const qty       = Number(inputs[1]?.value)||1;
+    if(isDb){
+      const partId = nameEl.value;
+      if(!partId) return;
+      const part = DB.parts().find(p=>p.id===partId);
+      items.push({partId, partName:part?.name||'', unitPrice, qty, note:noteEl?.value||''});
+    } else {
+      const name = nameEl.value.trim();
+      if(!name && !unitPrice) return;
+      items.push({partId:null, partName:name, unitPrice, qty, note:noteEl?.value||''});
+    }
+  });
+  return items;
+}
+
+function saveOrder(){
+  const dueDate = document.getElementById('om-due').value;
+  if(!dueDate){ alert('납기 요청일을 입력하세요.'); return; }
+  const items = collectOrderItems();
+  if(!items.length){ alert('발주 부품을 하나 이상 입력하세요.'); return; }
+  const totalAmount = items.reduce((s,it)=>s+it.unitPrice*it.qty, 0);
+
+  const rec = {
+    id:           editingOrderId||uid(),
+    partnerId:    currentPartnerId,
+    orderNo:      document.getElementById('om-no').value,
+    orderDate:    document.getElementById('om-date').value,
+    dueDate,
+    deliveredDate:document.getElementById('om-delivered').value||null,
+    status:       document.getElementById('om-status').value,
+    note:         document.getElementById('om-note').value,
+    items,
+    totalAmount,
+  };
+
+  const prevStatus = editingOrderId ? (DB.orders().find(o=>o.id===editingOrderId)||{}).status : null;
+
+  const orders = DB.orders();
+  const idx = orders.findIndex(o=>o.id===rec.id);
+  if(idx>=0) orders[idx]=rec; else orders.push(rec);
+  DB.saveOrders(orders);
+
+  // 납품완료로 변경되면 재고 자동 입고
+  if(rec.status==='납품완료' && prevStatus!=='납품완료'){
+    autoStockInFromOrder(rec);
+  }
+
+  closeModal('order-modal');
+  renderOrders(currentPartnerId);
+}
+
+function markDelivered(orderId){
+  if(!confirm('납품완료 처리하시겠습니까?\n발주 부품이 재고에 자동으로 입고됩니다.')) return;
+  const orders = DB.orders();
+  const o = orders.find(x=>x.id===orderId);
+  if(!o || o.status==='납품완료') return;
+  o.status = '납품완료';
+  o.deliveredDate = today();
+  DB.saveOrders(orders);
+  autoStockInFromOrder(o);
+  renderOrders(currentPartnerId);
+}
+
+function autoStockInFromOrder(order){
+  const allParts = DB.parts();
+  const hist = DB.stockHistory();
+  order.items.forEach(it=>{
+    if(!it.partId) return;
+    const part = allParts.find(p=>p.id===it.partId);
+    if(!part) return;
+    part.stock = (part.stock||0) + it.qty;
+    hist.push({id:uid(), partId:it.partId, type:'입고', qty:it.qty,
+      date:order.deliveredDate||today(), repairId:null,
+      note:`발주 ${order.orderNo} 납품 입고`});
+  });
+  DB.saveParts(allParts);
+  DB.saveStockHistory(hist);
+}
+
+function completeOrder(){
+  document.getElementById('om-status').value = '납품완료';
+  if(!document.getElementById('om-delivered').value)
+    document.getElementById('om-delivered').value = today();
+  saveOrder();
+}
+
+function deleteOrder(id){
+  if(!confirm('발주서를 삭제하시겠습니까?')) return;
+  DB.saveOrders(DB.orders().filter(o=>o.id!==id));
+  renderOrders(currentPartnerId);
+}
+
+// =================== SCHEDULE ===================
+function renderSchedule(){
+  const filterVal   = document.getElementById('sch-filter')?.value || 'pending';
+  const partnerVal  = document.getElementById('sch-partner')?.value || 'all';
+  const partners    = DB.partners();
+  const orders      = DB.orders();
+  const today_      = today();
+
+  // populate partner filter
+  const pSel = document.getElementById('sch-partner');
+  if(pSel){
+    const cur = pSel.value;
+    pSel.innerHTML = '<option value="all">전체 협력사</option>' +
+      partners.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name}</option>`).join('');
+  }
+
+  // filter
+  let filtered = orders.filter(o=>{
+    if(filterVal==='pending' && o.status!=='발주중') return false;
+    if(filterVal==='done'    && o.status!=='납품완료') return false;
+    if(partnerVal!=='all'    && o.partnerId!==partnerVal) return false;
+    return true;
+  }).sort((a,b)=>a.dueDate>b.dueDate?1:-1);
+
+  // summary
+  const all       = orders;
+  const pending   = all.filter(o=>o.status==='발주중');
+  const overdue   = pending.filter(o=>o.dueDate < today_);
+  const thisWeek  = pending.filter(o=>o.dueDate>=today_ && o.dueDate<=addDays(today_,7));
+  document.getElementById('schedule-summary').innerHTML = `
+    <div class="summary-box"><div class="val" style="color:#f59e0b">${pending.length}</div><div class="lbl">진행중 발주</div></div>
+    <div class="summary-box"><div class="val" style="color:#dc2626">${overdue.length}</div><div class="lbl">납기 초과</div></div>
+    <div class="summary-box"><div class="val" style="color:#3b82f6">${thisWeek.length}</div><div class="lbl">이번주 납기</div></div>
+    <div class="summary-box"><div class="val">${comma(pending.reduce((s,o)=>s+o.totalAmount,0))}</div><div class="lbl">진행중 발주금액(원)</div></div>
+  `;
+
+  if(!filtered.length){
+    document.getElementById('schedule-body').innerHTML = '<div class="empty"><p>해당하는 발주 내역이 없습니다</p></div>';
+    return;
+  }
+
+  // group by month
+  const grouped = {};
+  filtered.forEach(o=>{
+    const key = o.dueDate.slice(0,7);
+    if(!grouped[key]) grouped[key]=[];
+    grouped[key].push(o);
+  });
+
+  let html = '';
+  Object.entries(grouped).forEach(([month, list])=>{
+    html += `<h3 style="font-size:15px;font-weight:700;color:#1a2744;margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid #e5e7eb">${month.replace('-','년 ')}월</h3>
+      <div class="table-wrap" style="margin-bottom:16px"><div style="padding:8px 0">`;
+    list.forEach(o=>{
+      const partner = partners.find(p=>p.id===o.partnerId)||{name:'?'};
+      const due     = new Date(o.dueDate);
+      const todayD  = new Date(today_);
+      const diff    = Math.ceil((due-todayD)/(1000*60*60*24));
+      const dateClass = o.status==='납품완료'?'':diff<0?'overdue':diff===0?'today':'';
+      const dLabel  = o.status==='납품완료'?`납품완료<br>${o.deliveredDate}`:diff<0?`${Math.abs(diff)}일 초과`:diff===0?'오늘 납기':`D-${diff}`;
+      const itemSummary = (o.items||[]).slice(0,3).map(it=>`${it.partName} ×${it.qty}`).join(', ') + (o.items.length>3?` 외 ${o.items.length-3}종`:'');
+      html += `<div class="schedule-item" style="padding:12px 16px">
+        <div class="sch-date-box ${dateClass}">
+          <div class="dm">${o.dueDate.slice(8)}</div>
+          <div class="dy">${o.dueDate.slice(5,7)}월</div>
+          <div style="font-size:10px;color:#666;margin-top:2px;white-space:nowrap">${dLabel}</div>
+        </div>
+        <div class="sch-info" style="flex:1">
+          <h5>${o.orderNo} <span class="badge badge-gray" style="font-size:11px">${partner.name}</span>
+            <span class="badge ${o.status==='납품완료'?'badge-green':o.status==='취소'?'badge-gray':'badge-yellow'}" style="font-size:11px">${o.status}</span>
+          </h5>
+          <p style="margin:2px 0">${itemSummary}</p>
+          <p>발주금액: <strong>${comma(o.totalAmount)}원</strong>${o.note?` · ${o.note}`:''}</p>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-outline btn-sm" onclick="goToOrderDetail('${o.partnerId}','${o.id}')">상세</button>
+          ${o.status==='발주중'?`<button class="btn btn-success btn-sm" onclick="markDeliveredFromSchedule('${o.id}')">납품완료</button>`:''}
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('schedule-body').innerHTML = html;
+}
+
+function goToOrderDetail(partnerId, orderId){
+  currentPartnerId = partnerId;
+  openPartnerDetail(partnerId);
+  // 탭을 발주/납품으로 이동
+  setTimeout(()=>{
+    document.querySelectorAll('#partner-tabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===1));
+    ['ptxn','porders','pinfo'].forEach(t=>{
+      document.getElementById('tab-'+t).classList.toggle('active', t==='porders');
+    });
+    renderOrders(partnerId);
+  }, 50);
+}
+
+function markDeliveredFromSchedule(orderId){
+  const orders = DB.orders();
+  const o = orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!confirm(`[${o.orderNo}] 납품완료 처리하시겠습니까?\n발주 부품이 재고에 자동 입고됩니다.`)) return;
+  o.status = '납품완료';
+  o.deliveredDate = today();
+  DB.saveOrders(orders);
+  autoStockInFromOrder(o);
+  renderSchedule();
+}
+
+function openPartnerModal(pid){
+  editingPartnerId = pid||null;
+  const p = pid ? DB.partners().find(x=>x.id===pid) : null;
+  document.getElementById('partner-modal-title').textContent = p?'협력사 수정':'협력사 등록';
+  document.getElementById('pm2-name').value    = p?p.name:'';
+  document.getElementById('pm2-cat').value     = p?p.category||'부품공급':'부품공급';
+  document.getElementById('pm2-contact').value = p?p.contact||'':'';
+  document.getElementById('pm2-phone').value   = p?p.phone||'':'';
+  document.getElementById('pm2-email').value   = p?p.email||'':'';
+  document.getElementById('pm2-bank').value    = p?p.bankName||'':'';
+  document.getElementById('pm2-account').value = p?p.accountNo||'':'';
+  document.getElementById('pm2-bizno').value   = p?p.bizNo||'':'';
+  document.getElementById('pm2-address').value = p?p.address||'':'';
+  document.getElementById('pm2-note').value    = p?p.note||'':'';
+  document.getElementById('pm2-active').value  = p?(p.active=='1'||p.active===true||p.active===1?'1':'0'):'1';
+  openModal('partner-modal');
+}
+
+function savePartner(){
+  const name = document.getElementById('pm2-name').value.trim();
+  if(!name){ alert('협력사명을 입력하세요.'); return; }
+  const rec = {
+    id:        editingPartnerId||uid(),
+    name,
+    category:  document.getElementById('pm2-cat').value,
+    contact:   document.getElementById('pm2-contact').value,
+    phone:     document.getElementById('pm2-phone').value,
+    email:     document.getElementById('pm2-email').value,
+    bankName:  document.getElementById('pm2-bank').value,
+    accountNo: document.getElementById('pm2-account').value,
+    bizNo:     document.getElementById('pm2-bizno').value,
+    address:   document.getElementById('pm2-address').value,
+    note:      document.getElementById('pm2-note').value,
+    active:    document.getElementById('pm2-active').value==='1',
+  };
+  const partners = DB.partners();
+  const idx = partners.findIndex(p=>p.id===rec.id);
+  if(idx>=0) partners[idx]=rec; else partners.push(rec);
+  DB.savePartners(partners);
+  closeModal('partner-modal');
+  // refresh whichever view is active
+  if(document.getElementById('partners-view').classList.contains('active')) renderPartners();
+  if(document.getElementById('partner-detail-view').classList.contains('active')){
+    openPartnerDetail(rec.id);
+  }
+}
+
+// =================== FINANCE ===================
+let finMode = 'accrual'; // 'accrual' | 'cash'
+
+function setFinMode(mode){
+  finMode = mode;
+  document.getElementById('fin-mode-accrual').classList.toggle('active', mode==='accrual');
+  document.getElementById('fin-mode-cash').classList.toggle('active', mode==='cash');
+  renderFinance();
+}
+
+function renderFinance(){
+  const yearSel = document.getElementById('fin-year');
+  const allYears = getFinYears();
+  const curYear  = yearSel.value || String(new Date().getFullYear());
+  yearSel.innerHTML = allYears.map(y=>`<option value="${y}" ${y===curYear?'selected':''}>${y}년</option>`).join('');
+  const year = yearSel.value || curYear;
+
+  const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+  // ── 발생 기준 데이터 ──────────────────────────────
+  // 매출: 출고된 수리의 final, shippedDate 기준
+  const repairs  = DB.repairs().filter(r=>r.status==='출고' && (r.shippedDate||'').startsWith(year));
+  // 매입: 납품완료 발주의 totalAmount, deliveredDate 기준
+  const orders   = DB.orders().filter(o=>o.status==='납품완료' && (o.deliveredDate||'').startsWith(year));
+
+  // ── 현금 기준 데이터 ──────────────────────────────
+  // 입금: customer 입금 트랜잭션
+  const custIn   = DB.txns().filter(t=>t.entityType==='customer' && t.type==='입금' && t.date.startsWith(year));
+  // 출금: partner 출금 트랜잭션
+  const partOut  = DB.txns().filter(t=>t.entityType==='partner'  && t.type==='출금' && t.date.startsWith(year));
+
+  // 월별 집계
+  const monthData = Array.from({length:12},(_,i)=>{
+    const m = String(i+1).padStart(2,'0');
+    const prefix = `${year}-${m}`;
+
+    const revAcc  = repairs.filter(r=>(r.shippedDate||'').startsWith(prefix))
+                           .reduce((s,r)=>s+(r.final||r.estimate||0),0);
+    const costAcc = orders.filter(o=>(o.deliveredDate||'').startsWith(prefix))
+                          .reduce((s,o)=>s+o.totalAmount,0);
+    const repCnt  = repairs.filter(r=>(r.shippedDate||'').startsWith(prefix)).length;
+    const ordCnt  = orders.filter(o=>(o.deliveredDate||'').startsWith(prefix)).length;
+
+    const revCash  = custIn.filter(t=>t.date.startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+    const costCash = partOut.filter(t=>t.date.startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+
+    return {
+      m, label: MONTHS[i],
+      rev:  finMode==='accrual' ? revAcc  : revCash,
+      cost: finMode==='accrual' ? costAcc : costCash,
+      cnt:  finMode==='accrual' ? repCnt  : custIn.filter(t=>t.date.startsWith(prefix)).length,
+      ordCnt
+    };
+  });
+
+  const totalRev  = monthData.reduce((s,d)=>s+d.rev,0);
+  const totalCost = monthData.reduce((s,d)=>s+d.cost,0);
+  const totalProfit = totalRev - totalCost;
+  const maxVal    = Math.max(...monthData.map(d=>Math.max(d.rev,d.cost)), 1);
+
+  // 연간 요약
+  document.getElementById('fin-summary').innerHTML = `
+    <div class="summary-box"><div class="val" style="color:#3b82f6">${comma(totalRev)}</div><div class="lbl">연간 매출(원)</div></div>
+    <div class="summary-box"><div class="val" style="color:#f59e0b">${comma(totalCost)}</div><div class="lbl">연간 매입(원)</div></div>
+    <div class="summary-box"><div class="val" style="color:${totalProfit>=0?'#10b981':'#ef4444'}">${comma(totalProfit)}</div><div class="lbl">연간 이익(원)</div></div>
+    <div class="summary-box"><div class="val">${totalRev?Math.round(totalProfit/totalRev*100):0}%</div><div class="lbl">연간 이익률</div></div>
+  `;
+
+  const modeLabel = finMode==='accrual'
+    ? '※ 발생 기준: 수리 출고일 / 발주 납품일 기준으로 집계합니다.'
+    : '※ 현금 기준: 고객사 입금 / 협력사 출금 트랜잭션 기준으로 집계합니다.';
+  document.getElementById('fin-mode-label').textContent = modeLabel;
+
+  // 월별 테이블
+  document.getElementById('fin-tbody').innerHTML = monthData.map(d=>{
+    const profit  = d.rev - d.cost;
+    const margin  = d.rev ? Math.round(profit/d.rev*100) : 0;
+    const revPct  = Math.round(d.rev/maxVal*100);
+    const costPct = Math.round(d.cost/maxVal*100);
+    const profPct = Math.max(0, Math.round(profit/maxVal*100));
+    const hasData = d.rev||d.cost;
+    return `<tr style="${!hasData?'opacity:.45':''}">
+      <td>${d.label}</td>
+      <td class="${d.rev?'':''}"> ${d.rev?comma(d.rev)+' 원':'-'}</td>
+      <td>${d.cost?comma(d.cost)+' 원':'-'}</td>
+      <td class="${profit>0?'pos':profit<0?'neg':''}">${hasData?(comma(profit)+' 원'):'-'}</td>
+      <td class="${margin>0?'pos':margin<0?'neg':''}">${d.rev?margin+'%':'-'}</td>
+      <td class="bar-cell">
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+          <div class="bar-wrap" style="width:100%">
+            <span style="font-size:10px;color:#3b82f6;min-width:28px;text-align:right">${revPct}%</span>
+            <div style="flex:1;background:#f1f5f9;border-radius:3px;height:8px;overflow:hidden">
+              <div class="bar-seg bar-rev" style="width:${revPct}%;height:100%"></div>
+            </div>
+          </div>
+          <div class="bar-wrap" style="width:100%">
+            <span style="font-size:10px;color:#f59e0b;min-width:28px;text-align:right">${costPct}%</span>
+            <div style="flex:1;background:#f1f5f9;border-radius:3px;height:8px;overflow:hidden">
+              <div class="bar-seg bar-cost" style="width:${costPct}%;height:100%"></div>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center;font-size:13px;color:#888">${d.cnt||'-'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('fin-tfoot').innerHTML = `
+    <td>합계</td>
+    <td>${comma(totalRev)} 원</td>
+    <td>${comma(totalCost)} 원</td>
+    <td class="${totalProfit>=0?'pos':'neg'}">${comma(totalProfit)} 원</td>
+    <td class="${totalProfit>=0?'pos':'neg'}">${totalRev?Math.round(totalProfit/totalRev*100):0}%</td>
+    <td></td>
+    <td style="text-align:center">${monthData.reduce((s,d)=>s+d.cnt,0)}</td>
+  `;
+
+  // 고객사별
+  const customers = DB.customers();
+  const allRepairs= DB.repairs().filter(r=>r.status==='출고' && (r.shippedDate||'').startsWith(year));
+  const allCustIn = DB.txns().filter(t=>t.entityType==='customer'&&t.type==='입금'&&t.date.startsWith(year));
+  const custRows  = customers.map(c=>{
+    const cRep   = allRepairs.filter(r=>r.customerId===c.id);
+    const billed = cRep.reduce((s,r)=>s+(r.final||r.estimate||0),0);
+    const paid   = allCustIn.filter(t=>t.entityId===c.id).reduce((s,t)=>s+t.amount,0);
+    const unpaid = billed - paid;
+    if(!billed && !paid) return null;
+    return {name:c.name, billed, paid, unpaid, cnt:cRep.length};
+  }).filter(Boolean).sort((a,b)=>b.billed-a.billed);
+
+  document.getElementById('fin-cust-tbody').innerHTML = custRows.map(r=>`
+    <tr>
+      <td><strong>${r.name}</strong></td>
+      <td class="num">${comma(r.billed)}원</td>
+      <td class="num txn-in">${comma(r.paid)}원</td>
+      <td class="num ${r.unpaid>0?'neg':r.unpaid<0?'pos':''}">${r.unpaid>0?'+':r.unpaid<0?'-':''}${comma(Math.abs(r.unpaid))}원</td>
+      <td class="num">${r.cnt}건</td>
+    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">해당 연도 출고 내역 없음</td></tr>';
+
+  // 협력사별
+  const partners  = DB.partners();
+  const allOrders = DB.orders().filter(o=>o.status==='납품완료'&&(o.deliveredDate||'').startsWith(year));
+  const allPartOut= DB.txns().filter(t=>t.entityType==='partner'&&t.type==='출금'&&t.date.startsWith(year));
+  const partRows  = partners.map(p=>{
+    const pOrd    = allOrders.filter(o=>o.partnerId===p.id);
+    const ordered = pOrd.reduce((s,o)=>s+o.totalAmount,0);
+    const paid2   = allPartOut.filter(t=>t.entityId===p.id).reduce((s,t)=>s+t.amount,0);
+    const unpaid  = ordered - paid2;
+    if(!ordered && !paid2) return null;
+    return {name:p.name, ordered, paid:paid2, unpaid, cnt:pOrd.length};
+  }).filter(Boolean).sort((a,b)=>b.ordered-a.ordered);
+
+  document.getElementById('fin-partner-tbody').innerHTML = partRows.map(r=>`
+    <tr>
+      <td><strong>${r.name}</strong></td>
+      <td class="num">${comma(r.ordered)}원</td>
+      <td class="num txn-out">${comma(r.paid)}원</td>
+      <td class="num ${r.unpaid>0?'neg':''}">${r.unpaid>0?'미지급 ':r.unpaid<0?'초과납부 ':''}${comma(Math.abs(r.unpaid))}원</td>
+      <td class="num">${r.cnt}건</td>
+    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">해당 연도 납품 내역 없음</td></tr>';
+}
+
+function getFinYears(){
+  const years = new Set();
+  const cur = new Date().getFullYear();
+  years.add(String(cur));
+  DB.repairs().forEach(r=>{ if(r.shippedDate) years.add(r.shippedDate.slice(0,4)); });
+  DB.orders().forEach(o=>{ if(o.deliveredDate) years.add(o.deliveredDate.slice(0,4)); });
+  DB.txns().forEach(t=>{ if(t.date) years.add(t.date.slice(0,4)); });
+  return [...years].sort((a,b)=>b-a);
+}
+
+// =================== MODAL HELPERS ===================
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
+
+// =================== SAMPLE DATA ===================
+function initSampleData(){
+  if(DB.customers().length) return;
+  const c1=uid(), c2=uid(), c3=uid();
+  DB.saveCustomers([
+    {id:c1,name:'(주)한국정밀기계',contact:'김철수',phone:'02-1234-5678',email:'kim@hankook.co.kr',address:'경기도 안산시 단원구 산단로 100',active:true},
+    {id:c2,name:'대한공작기계(주)',contact:'이영희',phone:'031-987-6543',email:'lee@daehan.co.kr',address:'인천광역시 남동구 논현동 500',active:true},
+    {id:c3,name:'삼성중공업 창원공장',contact:'박민수',phone:'055-278-1000',email:'park@samsung.com',address:'경남 창원시 성산구 공단로 300',active:true},
+  ]);
+  const p1=uid(),p2=uid(),p3=uid(),p4=uid(),p5=uid();
+  DB.saveParts([
+    {id:p1,name:'앵귤러 베어링 70BER10H',category:'베어링',price:85000,stock:12,safeStock:4,unit:'EA',note:'FAG 또는 NSK'},
+    {id:p2,name:'앵귤러 베어링 7010CTYNDBLP4',category:'베어링',price:120000,stock:3,safeStock:4,unit:'EA',note:'NSK 권장'},
+    {id:p3,name:'오일씰 40x55x8',category:'씰/가스켓',price:8500,stock:20,safeStock:10,unit:'EA',note:''},
+    {id:p4,name:'스러스트 베어링 51106',category:'베어링',price:35000,stock:8,safeStock:3,unit:'EA',note:''},
+    {id:p5,name:'그리스 NSK SKALEX15',category:'소모품',price:25000,stock:6,safeStock:2,unit:'KG',note:'스핀들 전용 그리스'},
+  ]);
+  const r1=uid(),r2=uid(),r3=uid();
+  DB.saveRepairs([
+    {id:r1,customerId:c1,no:'RO-260610-01',model:'FANUC A06B-0253-B400',receivedDate:'2026-06-10',dueDate:'2026-06-25',estimate:450000,discount:5,final:427500,status:'수리중',note:'Z축 스핀들, 이상소음 발생',parts:[{partId:p1,qty:2},{partId:p3,qty:2}],shippedDate:null},
+    {id:r2,customerId:c2,no:'RO-260615-01',model:'SIEMENS 1PH7163-2NF00',receivedDate:'2026-06-15',dueDate:'2026-06-30',estimate:680000,discount:10,final:612000,status:'분해',note:'고속 가공 중 진동 발생, 베어링 교체 필요',parts:[{partId:p2,qty:2},{partId:p4,qty:1}],shippedDate:null},
+    {id:r3,customerId:c3,no:'RO-260601-01',model:'FANUC A06B-0227-B001',receivedDate:'2026-06-01',dueDate:'2026-06-20',estimate:320000,discount:0,final:320000,status:'출고',note:'정기 분해점검',parts:[{partId:p1,qty:2},{partId:p5,qty:1}],shippedDate:'2026-06-19'},
+  ]);
+  // sample partners
+  const pt1=uid(), pt2=uid(), pt3=uid();
+  DB.savePartners([
+    {id:pt1,name:'(주)한국베어링',category:'부품공급',contact:'정대호',phone:'031-555-1234',email:'jdh@kbearing.co.kr',bankName:'국민은행',accountNo:'123-456-789012',bizNo:'123-45-67890',address:'경기도 안양시 동안구 부림로 50',note:'NSK/FAG 공식 대리점',active:true},
+    {id:pt2,name:'대성씰공업',category:'부품공급',contact:'최민준',phone:'032-444-5678',email:'choi@daesungseals.com',bankName:'신한은행',accountNo:'110-234-567890',bizNo:'234-56-78901',address:'인천광역시 부평구 산단로 200',note:'오일씰 전문',active:true},
+    {id:pt3,name:'한진특송',category:'물류/운송',contact:'배송팀',phone:'1588-0011',email:'',bankName:'',accountNo:'',bizNo:'',address:'',note:'스핀들 전용 포장 운송',active:true},
+  ]);
+  // sample transactions (customers)
+  const cList=DB.customers();
+  if(cList.length>=2){
+    DB.saveTxns([
+      {id:uid(),entityType:'customer',entityId:cList[0].id,type:'입금',date:'2026-06-12',amount:200000,category:'선급금',memo:'RO-260610-01 선급금',refNo:''},
+      {id:uid(),entityType:'customer',entityId:cList[0].id,type:'입금',date:'2026-06-25',amount:227500,category:'수리대금',memo:'잔금 수령',refNo:'계산서#2026-061'},
+      {id:uid(),entityType:'customer',entityId:cList[1].id,type:'입금',date:'2026-06-20',amount:300000,category:'선급금',memo:'선급금 50%',refNo:''},
+      // partner transactions
+      {id:uid(),entityType:'partner',entityId:pt1,type:'출금',date:'2026-06-08',amount:340000,category:'부품비',memo:'앵귤러 베어링 70BER10H x4',refNo:'발주#2026-06-01'},
+      {id:uid(),entityType:'partner',entityId:pt1,type:'출금',date:'2026-06-18',amount:240000,category:'부품비',memo:'앵귤러 베어링 7010 x2',refNo:'발주#2026-06-02'},
+      {id:uid(),entityType:'partner',entityId:pt2,type:'출금',date:'2026-06-09',amount:85000,category:'부품비',memo:'오일씰 40x55x8 x10',refNo:'발주#2026-06-03'},
+      {id:uid(),entityType:'partner',entityId:pt1,type:'입금',date:'2026-06-10',amount:50000,category:'환불',memo:'불량품 반품 환불',refNo:''},
+    ]);
+  }
+
+  // sample orders
+  if(DB.partners().length){
+    const pts = DB.partners();
+    const pt1id = pts[0].id, pt2id = pts[1].id;
+    const p1=DB.parts()[0]?.id, p2=DB.parts()[1]?.id, p3=DB.parts()[2]?.id;
+    DB.saveOrders([
+      {id:uid(), partnerId:pt1id, orderNo:'PO-260605-01', orderDate:'2026-06-05', dueDate:'2026-06-15',
+       deliveredDate:'2026-06-14', status:'납품완료',
+       items:[{partId:p1,partName:'앵귤러 베어링 70BER10H',unitPrice:85000,qty:4,note:''}],
+       totalAmount:340000, note:''},
+      {id:uid(), partnerId:pt1id, orderNo:'PO-260620-01', orderDate:'2026-06-20', dueDate:'2026-07-05',
+       deliveredDate:null, status:'발주중',
+       items:[{partId:p2,partName:'앵귤러 베어링 7010CTYNDBLP4',unitPrice:120000,qty:2,note:'NSK 우선'},
+              {partId:p1,partName:'앵귤러 베어링 70BER10H',unitPrice:85000,qty:2,note:''}],
+       totalAmount:410000, note:'7/5일 이전 필히 납품 요청'},
+      {id:uid(), partnerId:pt2id, orderNo:'PO-260618-01', orderDate:'2026-06-18', dueDate:'2026-06-30',
+       deliveredDate:null, status:'발주중',
+       items:[{partId:p3,partName:'오일씰 40x55x8',unitPrice:8500,qty:20,note:''}],
+       totalAmount:170000, note:''},
+    ]);
+  }
+
+  // sample quote
+  const q1=uid();
+  DB.saveQuotes([{
+    id:q1, customerId:c1, repairId:r1, no:'QT-260610-01',
+    date:'2026-06-10', validUntil:'2026-07-10', status:'발송', vatRate:'10', discountRate:5,
+    laborItems:[{desc:'스핀들 분해 및 세척',amount:80000},{desc:'베어링 교체 및 조립',amount:120000},{desc:'정밀 런아웃 테스트',amount:50000}],
+    partItems:[{partId:p1,name:'앵귤러 베어링 70BER10H',costPrice:85000,margin:30,salePrice:110500,qty:2}],
+    otherItems:[{desc:'출장비',amount:30000}],
+    supply:391000, vatAmount:39100, discountAmount:21505, total:408595,
+    note:'납기일로부터 30일 이내 결제\n수리 보증기간: 6개월\n재수리 시 공임 50% 할인',
+  }]);
+}
+
+initSampleData();
+renderMain();
+</script>
+</body>
+</html>
